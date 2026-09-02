@@ -22,4 +22,21 @@ export const preferencesApi = {
     });
     return res.data.data;
   },
+
+  sendTestReminderEmail: async (taskTitle?: string): Promise<{ success: boolean; message: string }> => {
+    const res = await apiClient.post<ApiResponse<{ success: boolean; message: string }>>('/notifications/test/reminder', null, {
+      params: { taskTitle },
+    });
+    return res.data.data || (res.data as any);
+  },
+
+  sendTestWeeklyReport: async (): Promise<{ success: boolean; message: string }> => {
+    const res = await apiClient.post<ApiResponse<{ success: boolean; message: string }>>('/notifications/test/weekly-report');
+    return res.data.data || (res.data as any);
+  },
+
+  sendTestMonthlyReport: async (): Promise<{ success: boolean; message: string }> => {
+    const res = await apiClient.post<ApiResponse<{ success: boolean; message: string }>>('/notifications/test/monthly-report');
+    return res.data.data || (res.data as any);
+  },
 };

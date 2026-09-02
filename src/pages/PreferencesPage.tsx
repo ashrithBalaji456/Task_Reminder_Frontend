@@ -34,6 +34,11 @@ export const PreferencesPage: React.FC = () => {
   const [notifications, setNotifications] = useState<NotificationLogResponse[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(true);
 
+  // Email Test state
+  const [testingReminder, setTestingReminder] = useState(false);
+  const [testingWeekly, setTestingWeekly] = useState(false);
+  const [testingMonthly, setTestingMonthly] = useState(false);
+
   const loadPreferences = useCallback(async () => {
     setIsLoadingPref(true);
     try {
@@ -68,6 +73,45 @@ export const PreferencesPage: React.FC = () => {
     loadPreferences();
     loadLogs();
   }, [loadPreferences, loadLogs]);
+
+  const handleTestReminder = async () => {
+    setTestingReminder(true);
+    try {
+      const res = await preferencesApi.sendTestReminderEmail("Meeting Preparation & Deck Review");
+      toast.success(res.message || "Test reminder email sent to your inbox!");
+      loadLogs();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || "Failed to send test reminder email.");
+    } finally {
+      setTestingReminder(false);
+    }
+  };
+
+  const handleTestWeekly = async () => {
+    setTestingWeekly(true);
+    try {
+      const res = await preferencesApi.sendTestWeeklyReport();
+      toast.success(res.message || "Test weekly report email sent!");
+      loadLogs();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || "Failed to send test weekly report.");
+    } finally {
+      setTestingWeekly(false);
+    }
+  };
+
+  const handleTestMonthly = async () => {
+    setTestingMonthly(true);
+    try {
+      const res = await preferencesApi.sendTestMonthlyReport();
+      toast.success(res.message || "Test monthly report email sent!");
+      loadLogs();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || "Failed to send test monthly report.");
+    } finally {
+      setTestingMonthly(false);
+    }
+  };
 
   const handlePushToggle = async (enabled: boolean) => {
     setPushNotificationEnabled(enabled);
@@ -303,6 +347,55 @@ export const PreferencesPage: React.FC = () => {
                 ))}
               </div>
             )}
+          </GlassCard>
+
+          {/* Instant Email Dispatch Test Card */}
+          <GlassCard className="border-purple-200/80 bg-gradient-to-r from-purple-50/60 to-rose-50/60">
+            <h3 className="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2">
+              <Mail className="w-5 h-5 text-purple-600" />
+              Instant Email Dispatch Test
+            </h3>
+            <p className="text-xs text-slate-500 mb-4">
+              Send immediate test emails via Brevo to verify notification delivery to <strong>{user?.email}</strong>.
+            </p>
+
+            <div className="space-y-2">
+              <AnimatedButton
+                type="button"
+                variant="secondary"
+                size="sm"
+                isLoading={testingReminder}
+                onClick={handleTestReminder}
+                icon={<Bell className="w-4 h-4" />}
+                className="w-full justify-start text-xs"
+              >
+                Send Test Task Reminder Email
+              </AnimatedButton>
+
+              <AnimatedButton
+                type="button"
+                variant="secondary"
+                size="sm"
+                isLoading={testingWeekly}
+                onClick={handleTestWeekly}
+                icon={<Sparkles className="w-4 h-4 text-purple-600" />}
+                className="w-full justify-start text-xs"
+              >
+                Send Test Weekly Analytics Report
+              </AnimatedButton>
+
+              <AnimatedButton
+                type="button"
+                variant="secondary"
+                size="sm"
+                isLoading={testingMonthly}
+                onClick={handleTestMonthly}
+                icon={<History className="w-4 h-4 text-rose-600" />}
+                className="w-full justify-start text-xs"
+              >
+                Send Test Monthly Analytics Report
+              </AnimatedButton>
+            </div>
           </GlassCard>
 
           {/* Account & Logout Card */}
