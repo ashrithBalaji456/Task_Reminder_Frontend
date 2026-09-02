@@ -65,6 +65,7 @@ export interface CreateTaskRequest {
   recurrenceType?: RecurrenceType;
   reminderOption?: ReminderOption;
   customReminderMinutes?: number;
+  timezone?: string;
 }
 
 export interface UpdateTaskRequest {

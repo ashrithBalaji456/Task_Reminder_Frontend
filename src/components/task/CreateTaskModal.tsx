@@ -77,6 +77,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         recurrenceType: recurring ? 'DAILY' : undefined,
         reminderOption,
         customReminderMinutes: reminderOption === 'CUSTOM' ? customReminderMinutes : undefined,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       };
 
       await onSubmit(payload);
