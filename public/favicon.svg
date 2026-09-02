@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ec4899"/>
+      <stop offset="50%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="glassGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.1"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#4c1d95" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background Card -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)"/>
+
+  <!-- Glass Inner Overlay -->
+  <rect x="48" y="48" width="416" height="416" rx="96" fill="url(#glassGrad)" stroke="#ffffff" stroke-opacity="0.5" stroke-width="4" filter="url(#shadow)"/>
+
+  <!-- Glowing Bell Icon -->
+  <path d="M256 128c-44.2 0-80 35.8-80 80v56.6c0 14.6-5.8 28.5-16.2 38.8l-15.6 15.6c-12.6 12.6-3.7 34.2 14.1 34.2h195.4c17.8 0 26.7-21.6 14.1-34.2l-15.6-15.6c-10.4-10.3-16.2-24.2-16.2-38.8V208c0-44.2-35.8-80-80-80z" fill="#ffffff" opacity="0.95"/>
+  <path d="M208 368c4.2 22.6 24.1 40 48 40s43.8-17.4 48-40h-96z" fill="#ffffff" opacity="0.95"/>
+
+  <!-- Checkmark Badge -->
+  <circle cx="352" cy="160" r="44" fill="#10b981" stroke="#ffffff" stroke-width="6"/>
+  <path d="M334 160l12 12 24-24" fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

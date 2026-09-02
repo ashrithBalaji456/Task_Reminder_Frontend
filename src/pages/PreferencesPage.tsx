@@ -1,0 +1,309 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { Layout } from '../components/layout/Layout';
+import { Header } from '../components/layout/Header';
+import { GlassCard } from '../components/common/GlassCard';
+import { AnimatedButton } from '../components/common/AnimatedButton';
+import { StatusBadge } from '../components/common/StatusBadge';
+import { CardSkeleton } from '../components/common/LoadingSkeleton';
+import { preferencesApi } from '../api/preferences.api';
+import { UserEmailPreferenceResponse, NotificationLogResponse } from '../types';
+import { useToast } from '../context/ToastContext';
+import { Bell, Mail, Clock, Globe, History, Save, Smartphone, Sparkles, CheckCircle2 } from 'lucide-react';
+import { GlassSelect } from '../components/common/GlassSelect';
+import { TIMEZONE_OPTIONS } from '../constants/timezones';
+import { pushNotificationService } from '../pwa/notifications/pushNotificationService';
+
+export const PreferencesPage: React.FC = () => {
+  const toast = useToast();
+
+  const [taskReminderEnabled, setTaskReminderEnabled] = useState(true);
+  const [pushNotificationEnabled, setPushNotificationEnabled] = useState(true);
+  const [weeklyReportEnabled, setWeeklyReportEnabled] = useState(true);
+  const [monthlyReportEnabled, setMonthlyReportEnabled] = useState(true);
+  const [preferredWeeklyReportDay, setPreferredWeeklyReportDay] = useState('SUNDAY');
+  const [preferredWeeklyReportTime, setPreferredWeeklyReportTime] = useState('18:00');
+  const [timezone, setTimezone] = useState('UTC');
+
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingPref, setIsLoadingPref] = useState(true);
+  const [isPushSubscribing, setIsPushSubscribing] = useState(false);
+
+  // Notification logs history
+  const [notifications, setNotifications] = useState<NotificationLogResponse[]>([]);
+  const [isLoadingLogs, setIsLoadingLogs] = useState(true);
+
+  const loadPreferences = useCallback(async () => {
+    setIsLoadingPref(true);
+    try {
+      const pref = await preferencesApi.getUserPreferences();
+      setTaskReminderEnabled(pref.taskReminderEnabled);
+      setPushNotificationEnabled(pref.pushNotificationEnabled ?? true);
+      setWeeklyReportEnabled(pref.weeklyReportEnabled);
+      setMonthlyReportEnabled(pref.monthlyReportEnabled);
+      setPreferredWeeklyReportDay(pref.preferredWeeklyReportDay || 'SUNDAY');
+      setPreferredWeeklyReportTime(pref.preferredWeeklyReportTime ? pref.preferredWeeklyReportTime.substring(0, 5) : '18:00');
+      setTimezone(pref.timezone || 'UTC');
+    } catch (e: any) {
+      toast.error('Failed to load notification preferences.');
+    } finally {
+      setIsLoadingPref(false);
+    }
+  }, [toast]);
+
+  const loadLogs = useCallback(async () => {
+    setIsLoadingLogs(true);
+    try {
+      const paged = await preferencesApi.getNotificationHistory({ page: 0, size: 20 });
+      setNotifications(paged.content || []);
+    } catch (e: any) {
+      toast.error('Failed to load notification logs.');
+    } finally {
+      setIsLoadingLogs(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    loadPreferences();
+    loadLogs();
+  }, [loadPreferences, loadLogs]);
+
+  const handlePushToggle = async (enabled: boolean) => {
+    setPushNotificationEnabled(enabled);
+    if (enabled) {
+      setIsPushSubscribing(true);
+      try {
+        const success = await pushNotificationService.subscribeToPushNotifications();
+        if (success) {
+          toast.success('Web Push Notifications enabled & device registered! 🔔');
+        } else {
+          toast.warning('Browser notification permission was not granted.');
+        }
+      } catch (err: any) {
+        toast.error(err.message || 'Failed to register push notifications.');
+      } finally {
+        setIsPushSubscribing(false);
+      }
+    }
+  };
+
+  const handleSavePreferences = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      await preferencesApi.updateUserPreferences({
+        taskReminderEnabled,
+        pushNotificationEnabled,
+        weeklyReportEnabled,
+        monthlyReportEnabled,
+        preferredWeeklyReportDay,
+        preferredWeeklyReportTime: preferredWeeklyReportTime.length === 5 ? `${preferredWeeklyReportTime}:00` : preferredWeeklyReportTime,
+        timezone,
+      });
+      toast.success('Notification preferences saved successfully! 🌸');
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Failed to update preferences.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <Layout>
+      <Header
+        title="Notification Preferences & Logs ✉️"
+        subtitle="Manage Brevo email notifications, Web Push alerts, report schedules, and delivery logs."
+      />
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Settings Form */}
+        <div className="lg:col-span-2 space-y-6">
+          <GlassCard>
+            <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+              <Mail className="w-5 h-5 text-rose-500" />
+              Notification Toggles & Channels
+            </h3>
+
+            {isLoadingPref ? (
+              <CardSkeleton />
+            ) : (
+              <form onSubmit={handleSavePreferences} className="space-y-6">
+                {/* Toggles List */}
+                <div className="space-y-4">
+                  {/* Web Push Notifications */}
+                  <label className="flex items-center justify-between p-4 rounded-2xl bg-gradient-to-r from-rose-50/80 to-purple-50/80 border border-rose-200/80 hover:border-rose-300 transition-all cursor-pointer">
+                    <div className="space-y-0.5">
+                      <span className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                        <Smartphone className="w-4 h-4 text-purple-600" />
+                        Web Push Notifications
+                        <span className="text-[10px] font-extrabold uppercase bg-purple-100 text-purple-700 px-2 py-0.5 rounded-lg border border-purple-200">
+                          PWA Alarm
+                        </span>
+                      </span>
+                      <p className="text-xs text-slate-500">
+                        Receive instant native notifications on your phone or desktop for upcoming tasks
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      disabled={isPushSubscribing}
+                      checked={pushNotificationEnabled}
+                      onChange={(e) => handlePushToggle(e.target.checked)}
+                      className="w-5 h-5 text-purple-600 rounded-sm focus:ring-purple-500 cursor-pointer disabled:opacity-50"
+                    />
+                  </label>
+
+                  {/* Task Reminders */}
+                  <label className="flex items-center justify-between p-4 rounded-2xl bg-white/70 border border-rose-100 hover:border-rose-200 transition-all cursor-pointer">
+                    <div className="space-y-0.5">
+                      <span className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                        <Bell className="w-4 h-4 text-rose-500" />
+                        Email Task Reminders
+                      </span>
+                      <p className="text-xs text-slate-500">
+                        Receive Brevo email notifications before task due times
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={taskReminderEnabled}
+                      onChange={(e) => setTaskReminderEnabled(e.target.checked)}
+                      className="w-5 h-5 text-rose-600 rounded-sm focus:ring-rose-500 cursor-pointer"
+                    />
+                  </label>
+
+                  {/* Weekly Report */}
+                  <label className="flex items-center justify-between p-4 rounded-2xl bg-white/70 border border-purple-100 hover:border-purple-200 transition-all cursor-pointer">
+                    <div className="space-y-0.5">
+                      <span className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-purple-500" />
+                        Weekly Productivity Report
+                      </span>
+                      <p className="text-xs text-slate-500">
+                        Receive a weekly summary email with embedded trend charts
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={weeklyReportEnabled}
+                      onChange={(e) => setWeeklyReportEnabled(e.target.checked)}
+                      className="w-5 h-5 text-purple-600 rounded-sm focus:ring-purple-500 cursor-pointer"
+                    />
+                  </label>
+
+                  {/* Monthly Report */}
+                  <label className="flex items-center justify-between p-4 rounded-2xl bg-white/70 border border-amber-100 hover:border-amber-200 transition-all cursor-pointer">
+                    <div className="space-y-0.5">
+                      <span className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-amber-500" />
+                        Monthly Productivity Report
+                      </span>
+                      <p className="text-xs text-slate-500">
+                        Receive a monthly deep-dive email with priority performance breakdown
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={monthlyReportEnabled}
+                      onChange={(e) => setMonthlyReportEnabled(e.target.checked)}
+                      className="w-5 h-5 text-amber-600 rounded-sm focus:ring-amber-500 cursor-pointer"
+                    />
+                  </label>
+                </div>
+
+                {/* Report Schedule & Timezone */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-rose-100/60">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Weekly Report Day
+                    </label>
+                    <GlassSelect
+                      options={[
+                        { value: 'SUNDAY', label: 'Sunday Evening' },
+                        { value: 'MONDAY', label: 'Monday Morning' },
+                        { value: 'FRIDAY', label: 'Friday Afternoon' },
+                      ]}
+                      value={preferredWeeklyReportDay}
+                      onChange={setPreferredWeeklyReportDay}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Weekly Report Time
+                    </label>
+                    <div className="relative">
+                      <Clock className="w-4 h-4 text-slate-700 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
+                      <input
+                        type="time"
+                        value={preferredWeeklyReportTime}
+                        onChange={(e) => setPreferredWeeklyReportTime(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 rounded-2xl glass-input text-sm font-medium"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                    User Timezone
+                  </label>
+                  <GlassSelect
+                    options={TIMEZONE_OPTIONS}
+                    value={timezone}
+                    onChange={setTimezone}
+                    icon={<Globe className="w-4 h-4 text-slate-700" />}
+                  />
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <AnimatedButton type="submit" isLoading={isSaving} icon={<Save className="w-4 h-4" />}>
+                    Save Preferences
+                  </AnimatedButton>
+                </div>
+              </form>
+            )}
+          </GlassCard>
+        </div>
+
+        {/* Notification History Column */}
+        <div className="space-y-6">
+          <GlassCard>
+            <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <History className="w-5 h-5 text-purple-500" />
+              Delivery History Logs
+            </h3>
+
+            {isLoadingLogs ? (
+              <CardSkeleton />
+            ) : notifications.length === 0 ? (
+              <p className="text-xs text-slate-500 text-center py-6">No notification logs recorded yet.</p>
+            ) : (
+              <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+                {notifications.map((log) => (
+                  <div
+                    key={log.id}
+                    className="p-3.5 rounded-2xl bg-white/60 border border-rose-100 text-xs space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-slate-800">{log.notificationType}</span>
+                      <StatusBadge status={log.status} />
+                    </div>
+
+                    {log.periodIdentifier && (
+                      <p className="text-slate-500">Period: {log.periodIdentifier}</p>
+                    )}
+
+                    <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+                      <span>Attempts: {log.attemptCount}</span>
+                      <span>{new Date(log.createdAt).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </GlassCard>
+        </div>
+      </div>
+    </Layout>
+  );
+};
