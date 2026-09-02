@@ -8,13 +8,15 @@ import { CardSkeleton } from '../components/common/LoadingSkeleton';
 import { preferencesApi } from '../api/preferences.api';
 import { UserEmailPreferenceResponse, NotificationLogResponse } from '../types';
 import { useToast } from '../context/ToastContext';
-import { Bell, Mail, Clock, Globe, History, Save, Smartphone, Sparkles, CheckCircle2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { Bell, Mail, Clock, Globe, History, Save, Smartphone, Sparkles, CheckCircle2, LogOut } from 'lucide-react';
 import { GlassSelect } from '../components/common/GlassSelect';
 import { TIMEZONE_OPTIONS } from '../constants/timezones';
 import { pushNotificationService } from '../pwa/notifications/pushNotificationService';
 
 export const PreferencesPage: React.FC = () => {
   const toast = useToast();
+  const { user, logout } = useAuth();
 
   const [taskReminderEnabled, setTaskReminderEnabled] = useState(true);
   const [pushNotificationEnabled, setPushNotificationEnabled] = useState(true);
@@ -301,6 +303,27 @@ export const PreferencesPage: React.FC = () => {
                 ))}
               </div>
             )}
+          </GlassCard>
+
+          {/* Account & Logout Card */}
+          <GlassCard className="border-rose-200/80 bg-gradient-to-r from-rose-50/60 to-purple-50/60">
+            <h3 className="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2">
+              <LogOut className="w-5 h-5 text-rose-500" />
+              Account Session
+            </h3>
+            <p className="text-xs text-slate-500 mb-4">
+              Signed in as <strong className="text-slate-800">{user?.name || 'User'}</strong> ({user?.email || 'authenticated'})
+            </p>
+            <AnimatedButton
+              type="button"
+              variant="danger"
+              size="sm"
+              onClick={logout}
+              icon={<LogOut className="w-4 h-4" />}
+              className="w-full"
+            >
+              Sign Out of Account
+            </AnimatedButton>
           </GlassCard>
         </div>
       </div>
