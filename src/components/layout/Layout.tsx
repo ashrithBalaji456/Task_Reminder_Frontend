@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { MobileNav } from './MobileNav';
 import { useSidebar } from '../../context/SidebarContext';
 import { OfflineBanner } from '../../pwa/components/OfflineBanner';
 import { PwaInstallPrompt } from '../../pwa/components/PwaInstallPrompt';
+import { NotificationPromptModal } from '../common/NotificationPromptModal';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -11,6 +12,21 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { isCollapsed } = useSidebar();
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+
+  useEffect(() => {
+    // Auto-prompt if notifications are supported, not granted, and not dismissed in session
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      const isDismissed = sessionStorage.getItem('notification_prompt_dismissed');
+      if (Notification.permission !== 'granted' && !isDismissed) {
+        // Slight delay so the UI loads smoothly first
+        const timer = setTimeout(() => {
+          setShowNotificationModal(true);
+        }, 1500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, []);
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-rose-50 via-purple-50 to-amber-50">
@@ -38,6 +54,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Mobile Navigation & PWA Prompts */}
       <MobileNav />
       <PwaInstallPrompt />
+      <NotificationPromptModal
+        isOpen={showNotificationModal}
+        onClose={() => setShowNotificationModal(false)}
+      />
     </div>
   );
 };

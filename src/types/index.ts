@@ -163,10 +163,10 @@ export interface UserEmailPreferenceResponse {
 }
 
 export interface UserEmailPreferenceRequest {
-  taskReminderEnabled: boolean;
+  taskReminderEnabled?: boolean;
   pushNotificationEnabled?: boolean;
-  weeklyReportEnabled: boolean;
-  monthlyReportEnabled: boolean;
+  weeklyReportEnabled?: boolean;
+  monthlyReportEnabled?: boolean;
   preferredWeeklyReportDay?: string;
   preferredWeeklyReportTime?: string;
   timezone?: string;
