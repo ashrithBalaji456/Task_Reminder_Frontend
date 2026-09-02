@@ -22,9 +22,16 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const stored = localStorage.getItem('user');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
   const [accessToken, setAccessToken] = useState<string | null>(() => localStorage.getItem('accessToken'));
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const saveAuthSession = useCallback((res: AuthResponse) => {
     localStorage.setItem('accessToken', res.accessToken);
@@ -41,31 +48,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const clearAuthSession = useCallback(() => {
-    if (user?.id) {
-      import('../pwa/offline/db').then(({ clearUserDataFromDB }) => {
-        clearUserDataFromDB(user.id);
-      }).catch(() => {});
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const u = JSON.parse(storedUser);
+        if (u?.id) {
+          import('../pwa/offline/db').then(({ clearUserDataFromDB }) => {
+            clearUserDataFromDB(u.id);
+          }).catch(() => {});
+        }
+      } catch {}
     }
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     setAccessToken(null);
     setUser(null);
-  }, [user?.id]);
+  }, []);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    const storedToken = localStorage.getItem('accessToken');
-    if (storedUser && storedToken) {
-      try {
-        setUser(JSON.parse(storedUser));
-        setAccessToken(storedToken);
-      } catch (e) {
-        clearAuthSession();
-      }
-    }
-    setIsLoading(false);
-
     const handleLogoutEvent = () => {
       clearAuthSession();
     };

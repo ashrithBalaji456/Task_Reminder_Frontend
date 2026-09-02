@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 import { Sparkles, Bell, CheckCircle2, BarChart3, ShieldCheck, ArrowRight } from 'lucide-react';
 import { AnimatedButton } from '../components/common/AnimatedButton';
@@ -7,6 +8,13 @@ import { GlassCard } from '../components/common/GlassCard';
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, isLoading, navigate]);
 
   const features = [
     {
