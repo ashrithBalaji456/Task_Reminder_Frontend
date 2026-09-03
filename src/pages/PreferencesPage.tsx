@@ -34,10 +34,24 @@ export const PreferencesPage: React.FC = () => {
   const [notifications, setNotifications] = useState<NotificationLogResponse[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(true);
 
-  // Email Test state
+  // Email & Push Test state
   const [testingReminder, setTestingReminder] = useState(false);
   const [testingWeekly, setTestingWeekly] = useState(false);
   const [testingMonthly, setTestingMonthly] = useState(false);
+  const [testingPush, setTestingPush] = useState(false);
+
+  const handleTestPush = async () => {
+    setTestingPush(true);
+    try {
+      const res = await preferencesApi.sendTestPushNotification();
+      toast.success(res.message || "Test Web Push notification sent!");
+      loadLogs();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || e.message || "Failed to send test push notification.");
+    } finally {
+      setTestingPush(false);
+    }
+  };
 
   const loadPreferences = useCallback(async () => {
     setIsLoadingPref(true);
@@ -353,10 +367,10 @@ export const PreferencesPage: React.FC = () => {
           <GlassCard className="border-purple-200/80 bg-gradient-to-r from-purple-50/60 to-rose-50/60">
             <h3 className="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2">
               <Mail className="w-5 h-5 text-purple-600" />
-              Instant Email Dispatch Test
+              Instant Email & Push Dispatch Test
             </h3>
             <p className="text-xs text-slate-500 mb-4">
-              Send immediate test emails via Brevo to verify notification delivery to <strong>{user?.email}</strong>.
+              Send immediate test emails and native mobile push alerts to verify notification delivery to <strong>{user?.email}</strong>.
             </p>
 
             <div className="space-y-2">
@@ -364,12 +378,24 @@ export const PreferencesPage: React.FC = () => {
                 type="button"
                 variant="secondary"
                 size="sm"
+                isLoading={testingPush}
+                onClick={handleTestPush}
+                icon={<Smartphone className="w-4 h-4 text-indigo-600" />}
+                className="w-full justify-start text-xs font-bold border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100/80 text-indigo-900 shadow-sm"
+              >
+                Send Test Mobile Web Push Notification 📲
+              </AnimatedButton>
+
+              <AnimatedButton
+                type="button"
+                variant="secondary"
+                size="sm"
                 isLoading={testingReminder}
                 onClick={handleTestReminder}
-                icon={<Bell className="w-4 h-4" />}
+                icon={<Bell className="w-4 h-4 text-amber-600" />}
                 className="w-full justify-start text-xs"
               >
-                Send Test Task Reminder Email
+                Send Test Task Reminder Email 📩
               </AnimatedButton>
 
               <AnimatedButton

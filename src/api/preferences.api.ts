@@ -39,4 +39,9 @@ export const preferencesApi = {
     const res = await apiClient.post<ApiResponse<{ success: boolean; message: string }>>('/notifications/test/monthly-report');
     return res.data.data || (res.data as any);
   },
+
+  sendTestPushNotification: async (): Promise<{ success: boolean; message: string }> => {
+    const res = await apiClient.post<ApiResponse<{ success: boolean; message: string }>>('/notifications/test/push');
+    return res.data.data || (res.data as any);
+  },
 };
