@@ -54,6 +54,8 @@ export interface RefreshTokenRequest {
   refreshToken: string;
 }
 
+export type RepeatStopCondition = 'UNTIL_TASK_TIME' | 'AFTER_MAX_COUNT' | 'ON_COMPLETION';
+
 export interface CreateTaskRequest {
   title: string;
   description?: string;
@@ -65,6 +67,11 @@ export interface CreateTaskRequest {
   recurrenceType?: RecurrenceType;
   reminderOption?: ReminderOption;
   customReminderMinutes?: number;
+  repeatFrequencyMinutes?: number;
+  repeatStopCondition?: RepeatStopCondition;
+  maxReminderCount?: number;
+  notifyByEmail?: boolean;
+  notifyByPush?: boolean;
   timezone?: string;
 }
 
@@ -72,9 +79,15 @@ export interface UpdateTaskRequest {
   title: string;
   description?: string;
   priority: Priority;
+  dueDate?: string;
   dueTime: string;
   reminderOption?: ReminderOption;
   customReminderMinutes?: number;
+  repeatFrequencyMinutes?: number;
+  repeatStopCondition?: RepeatStopCondition;
+  maxReminderCount?: number;
+  notifyByEmail?: boolean;
+  notifyByPush?: boolean;
 }
 
 export interface MoveTaskRequest {
@@ -94,6 +107,12 @@ export interface TaskResponse {
   dueDateTime: string;
   reminderOption: ReminderOption;
   customReminderMinutes?: number;
+  repeatFrequencyMinutes?: number;
+  repeatStopCondition?: RepeatStopCondition;
+  maxReminderCount?: number;
+  reminderSentCount?: number;
+  notifyByEmail?: boolean;
+  notifyByPush?: boolean;
   reminderScheduledAt?: string;
   status: TaskStatus;
   recurring: boolean;

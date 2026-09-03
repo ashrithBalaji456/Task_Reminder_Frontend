@@ -8,6 +8,7 @@ interface GlassDatePickerProps {
   placeholder?: string;
   className?: string;
   minDate?: string;
+  min?: string;
   popoverPosition?: 'bottom' | 'top';
   align?: 'left' | 'right';
 }
@@ -18,9 +19,11 @@ export const GlassDatePicker: React.FC<GlassDatePickerProps> = ({
   placeholder = 'Select date...',
   className = '',
   minDate,
+  min,
   popoverPosition = 'bottom',
   align = 'left',
 }) => {
+  const effectiveMin = minDate || min;
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -72,6 +75,9 @@ export const GlassDatePicker: React.FC<GlassDatePickerProps> = ({
     const formattedMonth = String(month + 1).padStart(2, '0');
     const formattedDay = String(day).padStart(2, '0');
     const dateStr = `${year}-${formattedMonth}-${formattedDay}`;
+
+    if (effectiveMin && dateStr < effectiveMin) return;
+
     onChange(dateStr);
     setIsOpen(false);
   };
@@ -81,6 +87,9 @@ export const GlassDatePicker: React.FC<GlassDatePickerProps> = ({
     const formattedMonth = String(today.getMonth() + 1).padStart(2, '0');
     const formattedDay = String(today.getDate()).padStart(2, '0');
     const dateStr = `${today.getFullYear()}-${formattedMonth}-${formattedDay}`;
+
+    if (effectiveMin && dateStr < effectiveMin) return;
+
     onChange(dateStr);
     setViewDate(today);
     setIsOpen(false);
@@ -177,7 +186,7 @@ export const GlassDatePicker: React.FC<GlassDatePickerProps> = ({
               {Array.from({ length: firstDayOfMonth }).map((_, idx) => (
                 <span
                   key={`prev-${idx}`}
-                  className="text-xs text-slate-300 py-2 font-medium"
+                  className="text-xs text-slate-300 py-2 font-medium opacity-40"
                 >
                   {daysInPrevMonth - firstDayOfMonth + idx + 1}
                 </span>
@@ -186,6 +195,11 @@ export const GlassDatePicker: React.FC<GlassDatePickerProps> = ({
               {/* Current Month Days */}
               {Array.from({ length: daysInMonth }).map((_, idx) => {
                 const dayNum = idx + 1;
+                const formattedMonth = String(month + 1).padStart(2, '0');
+                const formattedDay = String(dayNum).padStart(2, '0');
+                const dateStr = `${year}-${formattedMonth}-${formattedDay}`;
+
+                const isDisabled = effectiveMin ? dateStr < effectiveMin : false;
                 const isSelected =
                   selectedDate &&
                   selectedDate.getFullYear() === year &&
@@ -198,13 +212,16 @@ export const GlassDatePicker: React.FC<GlassDatePickerProps> = ({
                   <button
                     key={`day-${dayNum}`}
                     type="button"
+                    disabled={isDisabled}
                     onClick={() => handleDateClick(dayNum)}
-                    className={`text-xs py-2 rounded-xl font-bold transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-gradient-to-tr from-rose-500 to-purple-600 text-white shadow-md shadow-rose-200 scale-105'
+                    className={`text-xs py-2 rounded-xl font-bold transition-all ${
+                      isDisabled
+                        ? 'opacity-30 cursor-not-allowed text-slate-400 line-through'
+                        : isSelected
+                        ? 'bg-gradient-to-tr from-rose-500 to-purple-600 text-white shadow-md shadow-rose-200 scale-105 cursor-pointer'
                         : isToday
-                        ? 'bg-rose-50 text-rose-700 border border-rose-300 font-black'
-                        : 'text-slate-700 hover:bg-rose-50 hover:text-rose-600'
+                        ? 'bg-rose-50 text-rose-700 border border-rose-300 font-black cursor-pointer'
+                        : 'text-slate-700 hover:bg-rose-50 hover:text-rose-600 cursor-pointer'
                     }`}
                   >
                     {dayNum}
