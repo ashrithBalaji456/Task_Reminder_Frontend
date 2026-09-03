@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, Check } from 'lucide-react';
 
@@ -21,7 +21,10 @@ export const GlassTimePicker: React.FC<GlassTimePickerProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState<'hour' | 'minute'>('hour');
+  const [isDragging, setIsDragging] = useState(false);
+
   const containerRef = useRef<HTMLDivElement>(null);
+  const dialRef = useRef<HTMLDivElement>(null);
 
   // Parse initial HH:mm 24-hour value into 12-hour components
   const { initialHour12, initialMinute, initialAmPm } = useMemo<{
@@ -86,24 +89,77 @@ export const GlassTimePicker: React.FC<GlassTimePickerProps> = ({
     return `${hStr}:${mStr} ${selectedAmPm}`;
   }, [selectedHour12, selectedMinute, selectedAmPm]);
 
-  // Clock Hand Geometry Calculations
-  const dialRadius = 88; // px
-  const clockCenter = 110; // px
+  // Geometry Constants
+  const clockCenter = 110; // Center of 220px x 220px container
+  const handRadius = 75; // Exact radius matching number centers
 
-  const hourAngle = (selectedHour12 % 12) * 30; // 360 / 12 = 30 deg per hour
-  const minuteAngle = (selectedMinute / 60) * 360; // 360 / 60 = 6 deg per min
+  // Angles (deg from top 12 o'clock clockwise)
+  const hourAngle = (selectedHour12 % 12) * 30; // 30 deg per hour
+  const minuteAngle = (selectedMinute / 60) * 360; // 6 deg per minute
 
   const currentAngle = mode === 'hour' ? hourAngle : minuteAngle;
 
   const handRad = (currentAngle - 90) * (Math.PI / 180);
-  const handLength = mode === 'hour' ? 58 : 68;
-  const handX = clockCenter + handLength * Math.cos(handRad);
-  const handY = clockCenter + handLength * Math.sin(handRad);
+  const handX = clockCenter + handRadius * Math.cos(handRad);
+  const handY = clockCenter + handRadius * Math.sin(handRad);
 
-  // Hour Numbers (1 to 12)
+  // Hour Numbers (12 at top, 1, 2, 3...)
   const hourNumbers = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
-  // Minute Numbers (00, 05, 10 ... 55)
+  // Minute Numbers (00 at top, 05, 10...)
   const minuteNumbers = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+
+  // --- Smooth Touch & Mouse Drag Handlers ---
+  const updateAngleFromPointer = useCallback(
+    (clientX: number, clientY: number) => {
+      if (!dialRef.current) return;
+      const rect = dialRef.current.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+
+      const dx = clientX - cx;
+      const dy = clientY - cy;
+
+      // Calculate angle clockwise starting from top (-90 deg)
+      let angleDeg = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+      if (angleDeg < 0) angleDeg += 360;
+
+      if (mode === 'hour') {
+        let h = Math.round(angleDeg / 30);
+        if (h === 0) h = 12;
+        if (h > 12) h = 12;
+        setSelectedHour12(h);
+      } else {
+        let m = Math.round(angleDeg / 6);
+        if (m >= 60) m = 0;
+        setSelectedMinute(m);
+      }
+    },
+    [mode]
+  );
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setIsDragging(true);
+    updateAngleFromPointer(e.clientX, e.clientY);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    updateAngleFromPointer(e.clientX, e.clientY);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch (err) {}
+
+    // Auto-advance from Hour selection to Minute selection
+    if (mode === 'hour') {
+      setMode('minute');
+    }
+  };
 
   return (
     <div ref={containerRef} className={`relative ${className} ${isOpen ? 'z-50' : ''}`}>
@@ -138,7 +194,7 @@ export const GlassTimePicker: React.FC<GlassTimePickerProps> = ({
               popoverPosition === 'top' ? 'bottom-full mb-2' : 'top-full mt-1'
             }`}
           >
-            {/* Top Display & AM/PM Switcher Header */}
+            {/* Header Display & AM/PM Switcher */}
             <div className="flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-rose-500/10 via-purple-500/10 to-amber-500/10 border border-purple-100 mb-4">
               <div className="flex items-baseline gap-1">
                 {/* Hour Digits */}
@@ -221,12 +277,19 @@ export const GlassTimePicker: React.FC<GlassTimePickerProps> = ({
               </button>
             </div>
 
-            {/* Interactive Analog Glass Dial */}
-            <div className="relative w-[220px] h-[220px] mx-auto rounded-full bg-gradient-to-br from-rose-50/80 via-purple-50/60 to-amber-50/40 border border-rose-200/60 shadow-inner flex items-center justify-center mb-5">
+            {/* Interactive Touch/Mouse Drag Analog Clock Dial */}
+            <div
+              ref={dialRef}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              className="relative w-[220px] h-[220px] mx-auto rounded-full bg-gradient-to-br from-rose-50/80 via-purple-50/60 to-amber-50/40 border border-rose-200/60 shadow-inner flex items-center justify-center mb-5 touch-none select-none cursor-grab active:cursor-grabbing"
+            >
               <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
                 {/* Clock Center Pin */}
                 <circle cx={clockCenter} cy={clockCenter} r="5" fill="#f43f5e" />
-                {/* SVG Clock Pointer Line */}
+
+                {/* SVG Pointer Hand Line */}
                 <line
                   x1={clockCenter}
                   y1={clockCenter}
@@ -236,8 +299,9 @@ export const GlassTimePicker: React.FC<GlassTimePickerProps> = ({
                   strokeWidth="3"
                   strokeLinecap="round"
                 />
-                {/* Outer Knob Circle */}
-                <circle cx={handX} cy={handY} r="16" fill="url(#handGrad)" />
+
+                {/* Outer Selection Knob Circle (Exact 100% Centering over Number) */}
+                <circle cx={handX} cy={handY} r="18" fill="url(#handGrad)" />
                 <defs>
                   <linearGradient id="handGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#f43f5e" />
@@ -246,28 +310,28 @@ export const GlassTimePicker: React.FC<GlassTimePickerProps> = ({
                 </defs>
               </svg>
 
-              {/* Number Buttons positioned around the 360deg dial */}
+              {/* Number Buttons around the 360deg dial */}
               {mode === 'hour'
                 ? hourNumbers.map((num, idx) => {
-                    const angleDeg = (idx * 30 - 90);
+                    const angleDeg = idx * 30 - 90;
                     const rad = angleDeg * (Math.PI / 180);
-                    const r = 80;
-                    const x = clockCenter + r * Math.cos(rad) - 16;
-                    const y = clockCenter + r * Math.sin(rad) - 16;
+                    const x = clockCenter + handRadius * Math.cos(rad) - 16;
+                    const y = clockCenter + handRadius * Math.sin(rad) - 16;
                     const isSelected = selectedHour12 === num;
 
                     return (
                       <button
                         key={num}
                         type="button"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setSelectedHour12(num);
-                          setMode('minute'); // Auto switch to minutes after picking hour
+                          setMode('minute');
                         }}
                         style={{ left: `${x}px`, top: `${y}px` }}
                         className={`absolute w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all z-20 cursor-pointer ${
                           isSelected
-                            ? 'text-white shadow-md shadow-rose-300 scale-110'
+                            ? 'text-white scale-110'
                             : 'text-slate-700 hover:bg-rose-100/70 hover:text-rose-700'
                         }`}
                       >
@@ -276,22 +340,24 @@ export const GlassTimePicker: React.FC<GlassTimePickerProps> = ({
                     );
                   })
                 : minuteNumbers.map((num, idx) => {
-                    const angleDeg = (idx * 30 - 90);
+                    const angleDeg = idx * 30 - 90;
                     const rad = angleDeg * (Math.PI / 180);
-                    const r = 80;
-                    const x = clockCenter + r * Math.cos(rad) - 16;
-                    const y = clockCenter + r * Math.sin(rad) - 16;
+                    const x = clockCenter + handRadius * Math.cos(rad) - 16;
+                    const y = clockCenter + handRadius * Math.sin(rad) - 16;
                     const isSelected = selectedMinute === num;
 
                     return (
                       <button
                         key={num}
                         type="button"
-                        onClick={() => setSelectedMinute(num)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedMinute(num);
+                        }}
                         style={{ left: `${x}px`, top: `${y}px` }}
                         className={`absolute w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all z-20 cursor-pointer ${
                           isSelected
-                            ? 'text-white shadow-md shadow-purple-300 scale-110'
+                            ? 'text-white scale-110'
                             : 'text-slate-700 hover:bg-purple-100/70 hover:text-purple-700'
                         }`}
                       >
