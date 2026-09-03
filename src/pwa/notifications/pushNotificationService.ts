@@ -30,16 +30,21 @@ export const pushNotificationService = {
     const publicKey = await pushApi.getVapidPublicKey();
     const applicationServerKey = urlBase64ToUint8Array(publicKey);
 
-    // 3. Register push manager
+    // 3. Register push manager (unsubscribe stale subscription if any to force fresh VAPID key pairing)
     const registration = await navigator.serviceWorker.ready;
     let subscription = await registration.pushManager.getSubscription();
-
-    if (!subscription) {
-      subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: applicationServerKey as unknown as BufferSource,
-      });
+    if (subscription) {
+      try {
+        await subscription.unsubscribe();
+      } catch (e) {
+        console.warn('Stale subscription unsubscribe warning:', e);
+      }
     }
+
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: applicationServerKey as unknown as BufferSource,
+    });
 
     // 4. Extract keys and send to backend
     const jsonSub = subscription.toJSON();
