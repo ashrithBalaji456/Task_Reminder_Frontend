@@ -190,27 +190,47 @@ export const PreferencesPage: React.FC = () => {
                 {/* Toggles List */}
                 <div className="space-y-4">
                   {/* Web Push Notifications */}
-                  <label className="flex items-center justify-between p-4 rounded-2xl bg-gradient-to-r from-rose-50/80 to-purple-50/80 border border-rose-200/80 hover:border-rose-300 transition-all cursor-pointer">
-                    <div className="space-y-0.5">
-                      <span className="font-bold text-slate-800 text-sm flex items-center gap-2">
-                        <Smartphone className="w-4 h-4 text-purple-600" />
-                        Web Push Notifications
-                        <span className="text-[10px] font-extrabold uppercase bg-purple-100 text-purple-700 px-2 py-0.5 rounded-lg border border-purple-200">
-                          PWA Alarm
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-rose-50/90 to-purple-50/90 border border-rose-200/90 hover:border-rose-300 transition-all space-y-3">
+                    <label className="flex items-center justify-between cursor-pointer">
+                      <div className="space-y-0.5">
+                        <span className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                          <Smartphone className="w-4 h-4 text-purple-600" />
+                          Web Push Notifications
+                          <span className="text-[10px] font-extrabold uppercase bg-purple-100 text-purple-700 px-2 py-0.5 rounded-lg border border-purple-200">
+                            PWA Alarm
+                          </span>
                         </span>
+                        <p className="text-xs text-slate-500">
+                          Receive instant native notifications on your phone or desktop for upcoming tasks
+                        </p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        disabled={isPushSubscribing}
+                        checked={pushNotificationEnabled}
+                        onChange={(e) => handlePushToggle(e.target.checked)}
+                        className="w-5 h-5 text-purple-600 rounded-sm focus:ring-purple-500 cursor-pointer disabled:opacity-50"
+                      />
+                    </label>
+
+                    {/* Prominent Direct Test Button */}
+                    <div className="pt-2 border-t border-purple-200/60 flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-semibold text-purple-900">
+                        Test mobile push delivery instantly:
                       </span>
-                      <p className="text-xs text-slate-500">
-                        Receive instant native notifications on your phone or desktop for upcoming tasks
-                      </p>
+                      <AnimatedButton
+                        type="button"
+                        variant="primary"
+                        size="sm"
+                        isLoading={testingPush}
+                        onClick={handleTestPush}
+                        icon={<Smartphone className="w-3.5 h-3.5" />}
+                        className="text-xs py-1.5 px-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold shadow-md hover:shadow-lg"
+                      >
+                        Send Test Push 📲
+                      </AnimatedButton>
                     </div>
-                    <input
-                      type="checkbox"
-                      disabled={isPushSubscribing}
-                      checked={pushNotificationEnabled}
-                      onChange={(e) => handlePushToggle(e.target.checked)}
-                      className="w-5 h-5 text-purple-600 rounded-sm focus:ring-purple-500 cursor-pointer disabled:opacity-50"
-                    />
-                  </label>
+                  </div>
 
                   {/* Task Reminders */}
                   <label className="flex items-center justify-between p-4 rounded-2xl bg-white/70 border border-rose-100 hover:border-rose-200 transition-all cursor-pointer">
