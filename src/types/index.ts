@@ -100,6 +100,7 @@ export interface TaskResponse {
   completedAt?: string;
   createdAt: string;
   updatedAt: string;
+  syncStatus?: 'PENDING_CREATE' | 'PENDING_UPDATE' | 'PENDING_DELETE' | 'SYNCED';
 }
 
 export interface DashboardResponse {

@@ -43,7 +43,9 @@ export const DashboardPage: React.FC = () => {
       setDashboardData(dash);
       setAlerts(alertList);
     } catch (e: any) {
-      toast.error('Failed to load dashboard statistics.');
+      if (navigator.onLine) {
+        toast.error('Failed to load dashboard statistics.');
+      }
     } finally {
       setIsLoading(false);
     }

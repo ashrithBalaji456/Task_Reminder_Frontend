@@ -17,13 +17,18 @@ const getStoredUserId = (): number | null => {
 };
 
 export const tasksApi = {
-  createTask: async (data: CreateTaskRequest): Promise<TaskResponse> => {
+  createTask: async (data: CreateTaskRequest, forceDirectApi = false): Promise<TaskResponse> => {
     const userId = getStoredUserId();
-    if (!navigator.onLine && userId) {
-      await syncQueue.enqueueOperation(userId, 'CREATE_TASK', data);
-      const tempTask: TaskResponse = {
-        id: Date.now(), // Temporary client ID
-        taskDefinitionId: Date.now(),
+    if (!forceDirectApi && (!navigator.onLine || !userId)) {
+      const tempId = Date.now();
+      const payloadWithTemp = { ...data, tempTaskId: tempId };
+      if (userId) {
+        await syncQueue.enqueueOperation(userId, 'CREATE_TASK', payloadWithTemp);
+      }
+
+      const tempTask: TaskResponse & { syncStatus?: string } = {
+        id: tempId,
+        taskDefinitionId: tempId,
         title: data.title,
         description: data.description,
         priority: data.priority,
@@ -37,8 +42,12 @@ export const tasksApi = {
         recurring: data.recurring || false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        syncStatus: 'PENDING_CREATE',
       };
-      await taskStorage.saveUserTasks(userId, [tempTask]);
+
+      if (userId) {
+        await taskStorage.saveUserTasks(userId, [tempTask]);
+      }
       return tempTask;
     }
 
@@ -50,12 +59,21 @@ export const tasksApi = {
   },
 
   getTaskById: async (id: number): Promise<TaskResponse> => {
+    const userId = getStoredUserId();
+    if (!navigator.onLine && userId) {
+      const cachedTasks = await taskStorage.getUserTasks(userId);
+      const target = cachedTasks.find((t) => t.id === id);
+      if (target) return target;
+    }
     const res = await apiClient.get<ApiResponse<TaskResponse>>(`/tasks/${id}`);
     return res.data.data;
   },
 
   getTasksForDate: async (date?: string): Promise<TaskResponse[]> => {
     const userId = getStoredUserId();
+    if (!navigator.onLine && userId) {
+      return taskStorage.getUserTasks(userId, date);
+    }
     try {
       const res = await apiClient.get<ApiResponse<TaskResponse[]>>('/tasks', {
         params: date ? { date } : {},
@@ -65,10 +83,9 @@ export const tasksApi = {
       }
       return res.data.data;
     } catch (err) {
-      if (!navigator.onLine && userId) {
-        console.info('Offline mode: Loading tasks from IndexedDB');
+      if (userId) {
         const cached = await taskStorage.getUserTasks(userId, date);
-        return cached;
+        if (cached.length > 0) return cached;
       }
       throw err;
     }
@@ -77,6 +94,9 @@ export const tasksApi = {
   getTodayTasks: async (): Promise<TaskResponse[]> => {
     const userId = getStoredUserId();
     const todayStr = new Date().toISOString().split('T')[0];
+    if (!navigator.onLine && userId) {
+      return taskStorage.getUserTasks(userId, todayStr);
+    }
     try {
       const res = await apiClient.get<ApiResponse<TaskResponse[]>>('/tasks/today');
       if (userId && res.data.data) {
@@ -84,18 +104,33 @@ export const tasksApi = {
       }
       return res.data.data;
     } catch (err) {
-      if (!navigator.onLine && userId) {
-        console.info('Offline mode: Loading today tasks from IndexedDB');
+      if (userId) {
         const cached = await taskStorage.getUserTasks(userId, todayStr);
-        return cached;
+        if (cached.length > 0) return cached;
       }
       throw err;
     }
   },
 
   getTomorrowTasks: async (): Promise<TaskResponse[]> => {
-    const res = await apiClient.get<ApiResponse<TaskResponse[]>>('/tasks/tomorrow');
-    return res.data.data;
+    const userId = getStoredUserId();
+    const tomorrowStr = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+    if (!navigator.onLine && userId) {
+      return taskStorage.getUserTasks(userId, tomorrowStr);
+    }
+    try {
+      const res = await apiClient.get<ApiResponse<TaskResponse[]>>('/tasks/tomorrow');
+      if (userId && res.data.data) {
+        await taskStorage.saveUserTasks(userId, res.data.data);
+      }
+      return res.data.data;
+    } catch (err) {
+      if (userId) {
+        const cached = await taskStorage.getUserTasks(userId, tomorrowStr);
+        if (cached.length > 0) return cached;
+      }
+      throw err;
+    }
   },
 
   getPendingTasks: async (params?: {
@@ -107,57 +142,133 @@ export const tasksApi = {
     page?: number;
     size?: number;
   }): Promise<PageResponse<TaskResponse>> => {
-    const res = await apiClient.get<ApiResponse<PageResponse<TaskResponse>>>('/tasks/pending', {
-      params,
-    });
-    return res.data.data;
-  },
-
-  updateTask: async (id: number, data: UpdateTaskRequest): Promise<TaskResponse> => {
-    const res = await apiClient.put<ApiResponse<TaskResponse>>(`/tasks/${id}`, data);
-    return res.data.data;
-  },
-
-  deleteTask: async (id: number): Promise<void> => {
-    await apiClient.delete<ApiResponse<void>>(`/tasks/${id}`);
-  },
-
-  completeTask: async (id: number): Promise<TaskResponse> => {
     const userId = getStoredUserId();
     if (!navigator.onLine && userId) {
-      await syncQueue.enqueueOperation(userId, 'MARK_COMPLETED', { taskId: id, completed: true });
-      await taskStorage.updateLocalTask(userId, id, {
-        status: 'COMPLETED',
-        completedAt: new Date().toISOString(),
+      const cached = await taskStorage.getUserTasks(userId, params?.date);
+      const pending = cached.filter((t) => t.status === 'PENDING');
+      return {
+        content: pending,
+        pageable: { pageNumber: 0, pageSize: pending.length },
+        totalElements: pending.length,
+        totalPages: 1,
+        last: true,
+        first: true,
+        size: pending.length,
+        number: 0,
+        numberOfElements: pending.length,
+        empty: pending.length === 0,
+      };
+    }
+    try {
+      const res = await apiClient.get<ApiResponse<PageResponse<TaskResponse>>>('/tasks/pending', {
+        params,
       });
-      const cached = await taskStorage.getUserTasks(userId);
-      const target = cached.find((t) => t.id === id);
-      return target || ({ id, status: 'COMPLETED' } as TaskResponse);
+      if (userId && res.data.data?.content) {
+        await taskStorage.saveUserTasks(userId, res.data.data.content);
+      }
+      return res.data.data;
+    } catch (err) {
+      if (userId) {
+        const cached = await taskStorage.getUserTasks(userId, params?.date);
+        const pending = cached.filter((t) => t.status === 'PENDING');
+        return {
+          content: pending,
+          pageable: { pageNumber: 0, pageSize: pending.length },
+          totalElements: pending.length,
+          totalPages: 1,
+          last: true,
+          first: true,
+          size: pending.length,
+          number: 0,
+          numberOfElements: pending.length,
+          empty: pending.length === 0,
+        };
+      }
+      throw err;
+    }
+  },
+
+  updateTask: async (id: number, data: UpdateTaskRequest, forceDirectApi = false): Promise<TaskResponse> => {
+    const userId = getStoredUserId();
+    if (!forceDirectApi && (!navigator.onLine || !userId)) {
+      if (userId) {
+        await syncQueue.enqueueOperation(userId, 'UPDATE_TASK', { id, data });
+        await taskStorage.updateLocalTask(userId, id, {
+          ...data,
+          syncStatus: 'PENDING_UPDATE',
+          updatedAt: new Date().toISOString(),
+        } as any);
+        const cached = await taskStorage.getUserTasks(userId);
+        const target = cached.find((t) => t.id === id);
+        if (target) return target;
+      }
+    }
+
+    const res = await apiClient.put<ApiResponse<TaskResponse>>(`/tasks/${id}`, data);
+    if (userId && res.data.data) {
+      await taskStorage.updateLocalTask(userId, id, { ...res.data.data, syncStatus: 'SYNCED' } as any);
+    }
+    return res.data.data;
+  },
+
+  deleteTask: async (id: number, forceDirectApi = false): Promise<void> => {
+    const userId = getStoredUserId();
+    if (!forceDirectApi && (!navigator.onLine || !userId)) {
+      if (userId) {
+        await syncQueue.enqueueOperation(userId, 'DELETE_TASK', { id });
+        await taskStorage.updateLocalTask(userId, id, { syncStatus: 'PENDING_DELETE' } as any);
+      }
+      return;
+    }
+
+    await apiClient.delete<ApiResponse<void>>(`/tasks/${id}`);
+    if (userId) {
+      await taskStorage.deleteLocalTask(userId, id);
+    }
+  },
+
+  completeTask: async (id: number, forceDirectApi = false): Promise<TaskResponse> => {
+    const userId = getStoredUserId();
+    if (!forceDirectApi && (!navigator.onLine || !userId)) {
+      if (userId) {
+        await syncQueue.enqueueOperation(userId, 'MARK_COMPLETED', { taskId: id, completed: true });
+        await taskStorage.updateLocalTask(userId, id, {
+          status: 'COMPLETED',
+          completedAt: new Date().toISOString(),
+          syncStatus: 'PENDING_UPDATE',
+        } as any);
+        const cached = await taskStorage.getUserTasks(userId);
+        const target = cached.find((t) => t.id === id);
+        return target || ({ id, status: 'COMPLETED' } as TaskResponse);
+      }
     }
 
     const res = await apiClient.patch<ApiResponse<TaskResponse>>(`/tasks/${id}/complete`);
     if (userId && res.data.data) {
-      await taskStorage.updateLocalTask(userId, id, res.data.data);
+      await taskStorage.updateLocalTask(userId, id, { ...res.data.data, syncStatus: 'SYNCED' } as any);
     }
     return res.data.data;
   },
 
-  moveTask: async (id: number, targetDate: string): Promise<TaskResponse> => {
+  moveTask: async (id: number, targetDate: string, forceDirectApi = false): Promise<TaskResponse> => {
     const userId = getStoredUserId();
-    if (!navigator.onLine && userId) {
-      await syncQueue.enqueueOperation(userId, 'MOVE_TASK', { taskId: id, targetDate });
-      await taskStorage.updateLocalTask(userId, id, {
-        status: 'MOVED',
-        dueDate: targetDate,
-      });
-      const cached = await taskStorage.getUserTasks(userId);
-      const target = cached.find((t) => t.id === id);
-      return target || ({ id, status: 'MOVED', dueDate: targetDate } as TaskResponse);
+    if (!forceDirectApi && (!navigator.onLine || !userId)) {
+      if (userId) {
+        await syncQueue.enqueueOperation(userId, 'MOVE_TASK', { taskId: id, targetDate });
+        await taskStorage.updateLocalTask(userId, id, {
+          status: 'MOVED',
+          dueDate: targetDate,
+          syncStatus: 'PENDING_UPDATE',
+        } as any);
+        const cached = await taskStorage.getUserTasks(userId);
+        const target = cached.find((t) => t.id === id);
+        return target || ({ id, status: 'MOVED', dueDate: targetDate } as TaskResponse);
+      }
     }
 
     const res = await apiClient.patch<ApiResponse<TaskResponse>>(`/tasks/${id}/move`, { targetDate } as MoveTaskRequest);
     if (userId && res.data.data) {
-      await taskStorage.updateLocalTask(userId, id, res.data.data);
+      await taskStorage.updateLocalTask(userId, id, { ...res.data.data, syncStatus: 'SYNCED' } as any);
     }
     return res.data.data;
   },
