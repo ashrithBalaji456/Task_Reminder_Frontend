@@ -6,6 +6,8 @@ import { GlassDatePicker } from '../common/GlassDatePicker';
 import { Priority, ReminderOption, TaskResponse, CreateTaskRequest, RepeatStopCondition } from '../../types';
 import { Calendar, Clock, Bell, Repeat, AlertTriangle, Check, Volume2, Mail } from 'lucide-react';
 
+import { GlassTimePicker } from '../common/GlassTimePicker';
+
 interface CreateTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -305,18 +307,11 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
               Due Time *
             </label>
-            <div className="relative">
-              <Clock className="w-5 h-5 text-slate-700 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
-              <input
-                type="time"
-                value={dueTime}
-                onChange={(e) => setDueTime(e.target.value)}
-                className={`w-full pl-11 pr-4 py-3 rounded-2xl glass-input text-sm font-medium ${
-                  validationError ? 'border-rose-400 focus:ring-rose-400 bg-rose-50/20' : ''
-                }`}
-                required
-              />
-            </div>
+            <GlassTimePicker
+              value={dueTime}
+              onChange={setDueTime}
+              popoverPosition="top"
+            />
           </div>
 
           <div>
