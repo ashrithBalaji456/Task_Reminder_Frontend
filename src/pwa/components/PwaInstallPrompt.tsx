@@ -5,38 +5,60 @@ import { Download, X, Sparkles, Smartphone } from 'lucide-react';
 export const PwaInstallPrompt: React.FC = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isVisible, setIsVisible] = useState<boolean>(false);
+  const [isInstalled, setIsInstalled] = useState<boolean>(false);
 
   useEffect(() => {
-    // Check if dismissed previously within 7 days
-    const lastDismissed = localStorage.getItem('pwa_install_dismissed');
-    if (lastDismissed) {
-      const dismissedTime = parseInt(lastDismissed, 10);
-      if (Date.now() - dismissedTime < 7 * 24 * 60 * 60 * 1000) {
-        return;
-      }
+    // Check standalone mode
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true;
+    if (isStandalone) {
+      setIsInstalled(true);
+      return;
     }
 
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
+      (window as any).__pwaInstallPrompt = e;
+
+      const lastDismissed = localStorage.getItem('pwa_install_dismissed');
+      if (lastDismissed) {
+        const dismissedTime = parseInt(lastDismissed, 10);
+        if (Date.now() - dismissedTime < 7 * 24 * 60 * 60 * 1000) {
+          return;
+        }
+      }
       setIsVisible(true);
     };
 
+    const handleAppInstalled = () => {
+      setIsInstalled(true);
+      setIsVisible(false);
+      setDeferredPrompt(null);
+      (window as any).__pwaInstallPrompt = null;
+    };
+
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
+    const promptEvent = deferredPrompt || (window as any).__pwaInstallPrompt;
+    if (!promptEvent) {
+      alert("PWA Installation is managed by your browser. On Android Chrome, tap the menu (⋮) at the top right and select 'Install app' or 'Add to Home screen'.");
+      return;
+    }
+    promptEvent.prompt();
+    const { outcome } = await promptEvent.userChoice;
     if (outcome === 'accepted') {
       setIsVisible(false);
     }
     setDeferredPrompt(null);
+    (window as any).__pwaInstallPrompt = null;
   };
 
   const handleDismiss = () => {

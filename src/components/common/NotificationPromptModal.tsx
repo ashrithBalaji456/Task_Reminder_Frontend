@@ -22,21 +22,30 @@ export const NotificationPromptModal: React.FC<NotificationPromptModalProps> = (
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const success = await pushNotificationService.subscribeToPushNotifications();
-      if (success) {
-        // Also enable push notification flag in user preferences
-        try {
-          await preferencesApi.updateUserPreferences({ pushNotificationEnabled: true });
-        } catch {
-          // Ignore preference sync errors if subscription succeeded
-        }
-        if (onSuccess) onSuccess();
-        onClose();
-      } else {
-        setErrorMessage('Notification permission was not granted.');
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'denied') {
+        setErrorMessage('Notification permission was blocked in browser settings. Please allow notifications for this origin.');
+        setIsLoading(false);
+        return;
       }
+
+      await pushNotificationService.subscribeToPushNotifications();
+      
+      // Also enable push notification flag in user preferences
+      try {
+        await preferencesApi.updateUserPreferences({ pushNotificationEnabled: true });
+      } catch (prefErr) {
+        console.warn('Preference sync warning:', prefErr);
+      }
+
+      if (onSuccess) onSuccess();
+      onClose();
     } catch (err: any) {
-      setErrorMessage(err?.message || 'Failed to enable notifications.');
+      console.error('[NotificationPromptModal Error]', err);
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'denied') {
+        setErrorMessage('Notification permission was not granted.');
+      } else {
+        setErrorMessage(err?.message || 'Failed to enable push notifications.');
+      }
     } finally {
       setIsLoading(false);
     }

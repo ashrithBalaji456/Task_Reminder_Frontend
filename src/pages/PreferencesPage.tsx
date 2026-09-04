@@ -14,6 +14,8 @@ import { GlassSelect } from '../components/common/GlassSelect';
 import { TIMEZONE_OPTIONS } from '../constants/timezones';
 import { pushNotificationService } from '../pwa/notifications/pushNotificationService';
 
+import { PwaDiagnosticsCard } from '../pwa/components/PwaDiagnosticsCard';
+
 export const PreferencesPage: React.FC = () => {
   const toast = useToast();
   const { user, logout } = useAuth();
@@ -173,6 +175,10 @@ export const PreferencesPage: React.FC = () => {
         title="Notification Preferences & Logs ✉️"
         subtitle="Manage Brevo email notifications, Web Push alerts, report schedules, and delivery logs."
       />
+
+      <div className="mb-8">
+        <PwaDiagnosticsCard />
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Settings Form */}
