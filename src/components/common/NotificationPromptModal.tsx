@@ -19,15 +19,30 @@ export const NotificationPromptModal: React.FC<NotificationPromptModalProps> = (
   if (!isOpen) return null;
 
   const handleTurnOn = async () => {
-    setIsLoading(true);
     setErrorMessage(null);
-    try {
-      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'denied') {
-        setErrorMessage('Notification permission was blocked in browser settings. Please allow notifications for this origin.');
-        setIsLoading(false);
-        return;
+    
+    // STEP 8: Request notification permission DIRECTLY in the user gesture click handler
+    let perm: NotificationPermission = 'default';
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      try {
+        perm = await Notification.requestPermission();
+        console.log('[USER GESTURE PUSH] Notification.requestPermission() result:', perm);
+      } catch (e) {
+        console.warn('Error during Notification.requestPermission():', e);
       }
+    }
 
+    if (perm !== 'granted') {
+      if (perm === 'denied') {
+        setErrorMessage('Notification permission was blocked in browser settings. Please allow notifications for this origin.');
+      } else {
+        setErrorMessage(`Notification permission was not granted (Permission state: '${perm}').`);
+      }
+      return;
+    }
+
+    setIsLoading(true);
+    try {
       await pushNotificationService.subscribeToPushNotifications();
       
       // Also enable push notification flag in user preferences
@@ -42,7 +57,7 @@ export const NotificationPromptModal: React.FC<NotificationPromptModalProps> = (
     } catch (err: any) {
       console.error('[NotificationPromptModal Error]', err);
       if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'denied') {
-        setErrorMessage('Notification permission was not granted.');
+        setErrorMessage('Notification permission was blocked in browser settings.');
       } else {
         setErrorMessage(err?.message || 'Failed to enable push notifications.');
       }

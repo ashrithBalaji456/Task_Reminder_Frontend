@@ -132,6 +132,22 @@ export const PreferencesPage: React.FC = () => {
   const handlePushToggle = async (enabled: boolean) => {
     setPushNotificationEnabled(enabled);
     if (enabled) {
+      // Synchronous permission request in user gesture
+      let perm: NotificationPermission = 'default';
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+        try {
+          perm = await Notification.requestPermission();
+        } catch (e) {
+          console.warn('Error during Notification.requestPermission():', e);
+        }
+      }
+
+      if (perm !== 'granted') {
+        toast.warning(`Notification permission was not granted (Permission state: '${perm}').`);
+        setPushNotificationEnabled(false);
+        return;
+      }
+
       setIsPushSubscribing(true);
       try {
         const success = await pushNotificationService.subscribeToPushNotifications();
