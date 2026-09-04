@@ -99,9 +99,11 @@ export const TasksPage: React.FC = () => {
   };
 
   const handleCompleteTask = async (id: number) => {
-    // Optimistic UI update
+    // Optimistic UI update: remove from list if in Pending tab, or mark COMPLETED
     setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, status: 'COMPLETED' } : t))
+      activeTab === 'pending'
+        ? prev.filter((t) => t.id !== id)
+        : prev.map((t) => (t.id === id ? { ...t, status: 'COMPLETED' } : t))
     );
     try {
       await tasksApi.completeTask(id);
@@ -114,11 +116,13 @@ export const TasksPage: React.FC = () => {
   };
 
   const handleDeleteTask = async (id: number) => {
+    // Optimistic UI removal
+    setTasks((prev) => prev.filter((t) => t.id !== id));
     try {
       await tasksApi.deleteTask(id);
-      setTasks((prev) => prev.filter((t) => t.id !== id));
       toast.success('Task deleted.');
     } catch (e: any) {
+      loadTasks();
       toast.error('Failed to delete task.');
     }
   };

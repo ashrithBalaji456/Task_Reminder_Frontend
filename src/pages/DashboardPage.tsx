@@ -88,21 +88,29 @@ export const DashboardPage: React.FC = () => {
   };
 
   const handleCompleteTask = async (id: number) => {
+    // Optimistic UI update
+    setTodayTasks((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, status: 'COMPLETED' } : t))
+    );
     try {
       await tasksApi.completeTask(id);
       toast.success('Task completed! Keep up the great momentum! 🚀');
       await loadDashboardData();
     } catch (err: any) {
+      await loadDashboardData();
       toast.error('Failed to complete task.');
     }
   };
 
   const handleDeleteTask = async (id: number) => {
+    // Optimistic UI removal
+    setTodayTasks((prev) => prev.filter((t) => t.id !== id));
     try {
       await tasksApi.deleteTask(id);
       toast.info('Task deleted.');
       await loadDashboardData();
     } catch (err: any) {
+      await loadDashboardData();
       toast.error('Failed to delete task.');
     }
   };
