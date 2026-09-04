@@ -24,6 +24,7 @@ self.addEventListener('push', (event: PushEvent) => {
   let title = 'Task Reminder 🌸';
   let body = 'You have an upcoming task due soon.';
   let url = '/tasks';
+  let taskId: any = null;
 
   if (event.data) {
     try {
@@ -31,6 +32,7 @@ self.addEventListener('push', (event: PushEvent) => {
       if (data.title) title = data.title;
       if (data.body) body = data.body;
       if (data.url) url = data.url;
+      if (data.taskId) taskId = data.taskId;
     } catch (e) {
       try {
         const textData = event.data.text();
@@ -38,6 +40,9 @@ self.addEventListener('push', (event: PushEvent) => {
       } catch (err) {}
     }
   }
+
+  // Use task-specific notification tag so repeat reminders update in-place on Android without hitting OS notification stacking limits
+  const notificationTag = taskId ? `task-reminder-${taskId}` : 'task-reminder-active';
 
   // Strong multi-pulse vibration pattern: 500ms vibrate, 150ms pause, 500ms vibrate, 150ms pause, 800ms alarm burst
   const options = {
@@ -49,7 +54,7 @@ self.addEventListener('push', (event: PushEvent) => {
     priority: 'high',
     urgency: 'high',
     timestamp: Date.now(),
-    tag: 'task-reminder-' + Date.now(),
+    tag: notificationTag,
     renotify: true,
     requireInteraction: true,
     actions: [
