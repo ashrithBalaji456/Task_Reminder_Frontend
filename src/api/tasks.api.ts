@@ -2,6 +2,7 @@ import { apiClient } from './axios';
 import { ApiResponse, TaskResponse, CreateTaskRequest, UpdateTaskRequest, MoveTaskRequest, Priority, PageResponse } from '../types';
 import { taskStorage } from '../pwa/offline/taskStorage';
 import { syncQueue } from '../pwa/offline/syncQueue';
+import { offlineStorage } from '../pwa/offline/offlineStorage';
 
 const getStoredUserId = (): number | null => {
   const userStr = localStorage.getItem('user');
@@ -54,6 +55,7 @@ export const tasksApi = {
     const res = await apiClient.post<ApiResponse<TaskResponse>>('/tasks', data);
     if (userId && res.data.data) {
       await taskStorage.saveUserTasks(userId, [res.data.data]);
+      await offlineStorage.invalidateUserCache(userId);
     }
     return res.data.data;
   },
@@ -207,6 +209,7 @@ export const tasksApi = {
     const res = await apiClient.put<ApiResponse<TaskResponse>>(`/tasks/${id}`, data);
     if (userId && res.data.data) {
       await taskStorage.updateLocalTask(userId, id, { ...res.data.data, syncStatus: 'SYNCED' } as any);
+      await offlineStorage.invalidateUserCache(userId);
     }
     return res.data.data;
   },
@@ -224,6 +227,7 @@ export const tasksApi = {
     await apiClient.delete<ApiResponse<void>>(`/tasks/${id}`);
     if (userId) {
       await taskStorage.deleteLocalTask(userId, id);
+      await offlineStorage.invalidateUserCache(userId);
     }
   },
 
@@ -246,6 +250,7 @@ export const tasksApi = {
     const res = await apiClient.patch<ApiResponse<TaskResponse>>(`/tasks/${id}/complete`);
     if (userId && res.data.data) {
       await taskStorage.updateLocalTask(userId, id, { ...res.data.data, syncStatus: 'SYNCED' } as any);
+      await offlineStorage.invalidateUserCache(userId);
     }
     return res.data.data;
   },
@@ -269,6 +274,7 @@ export const tasksApi = {
     const res = await apiClient.patch<ApiResponse<TaskResponse>>(`/tasks/${id}/move`, { targetDate } as MoveTaskRequest);
     if (userId && res.data.data) {
       await taskStorage.updateLocalTask(userId, id, { ...res.data.data, syncStatus: 'SYNCED' } as any);
+      await offlineStorage.invalidateUserCache(userId);
     }
     return res.data.data;
   },

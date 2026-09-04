@@ -29,6 +29,14 @@ export const historyApi = {
       const res = await apiClient.get<ApiResponse<DailyHistoryResponse>>('/history', {
         params: date ? { date } : {},
       });
+      console.log('[HISTORY] server response:', {
+        date: res.data.data?.date || 'ALL',
+        totalTasks: res.data.data?.totalTasks,
+        completedTasks: res.data.data?.completedTasks,
+        pendingTasks: res.data.data?.pendingTasks,
+        cancelledTasks: res.data.data?.cancelledTasks,
+        itemsCount: res.data.data?.tasks?.length,
+      });
       if (userId && res.data.data) {
         await offlineStorage.saveHistory(userId, queryDate, res.data.data);
       }

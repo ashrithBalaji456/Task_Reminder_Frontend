@@ -29,6 +29,16 @@ export const dashboardApi = {
       const res = await apiClient.get<ApiResponse<DashboardResponse>>('/dashboard/daily', {
         params: date ? { date } : {},
       });
+      console.log('[DASHBOARD] server response:', {
+        date: res.data.data?.date,
+        todayTotal: res.data.data?.totalTasks,
+        todayCompleted: res.data.data?.completedTasks,
+        todayPending: res.data.data?.pendingTasks,
+        allTimeTotal: res.data.data?.allTimeTotalTasks,
+        allTimeCompleted: res.data.data?.allTimeCompletedTasks,
+        allTimePending: res.data.data?.allTimePendingTasks,
+        allTimeCancelled: res.data.data?.allTimeCancelledTasks,
+      });
       if (userId && res.data.data) {
         await offlineStorage.saveDashboard(userId, queryDate, res.data.data);
       }

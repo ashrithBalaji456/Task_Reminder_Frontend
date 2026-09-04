@@ -137,4 +137,19 @@ export const offlineStorage = {
       return null;
     }
   },
+
+  // --- Cache Invalidation ---
+  invalidateUserCache: async (userId: number): Promise<void> => {
+    if (!userId) return;
+    try {
+      const db = await getDB();
+      await db.clear('dashboard');
+      await db.clear('history');
+      await db.clear('analytics');
+      await db.clear('alerts');
+      console.log(`[CACHE] Cleared offline cache for user ${userId} after task mutation`);
+    } catch (err) {
+      console.warn('Failed to clear user offline cache in IndexedDB:', err);
+    }
+  },
 };
