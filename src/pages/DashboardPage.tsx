@@ -55,7 +55,7 @@ export const DashboardPage: React.FC = () => {
       ]);
       setDashboardData(dash);
       setAlerts(alertList);
-      setTodayTasks(tasks || []);
+      setTodayTasks((tasks || []).filter((t) => t.status === 'PENDING'));
     } catch (e: any) {
       if (navigator.onLine) {
         toast.error('Failed to load dashboard statistics.');
@@ -88,10 +88,8 @@ export const DashboardPage: React.FC = () => {
   };
 
   const handleCompleteTask = async (id: number) => {
-    // Optimistic UI update
-    setTodayTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, status: 'COMPLETED' } : t))
-    );
+    // Optimistic UI removal from "Today's Due Tasks"
+    setTodayTasks((prev) => prev.filter((t) => t.id !== id));
     try {
       await tasksApi.completeTask(id);
       toast.success('Task completed! Keep up the great momentum! 🚀');

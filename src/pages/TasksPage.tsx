@@ -51,7 +51,7 @@ export const TasksPage: React.FC = () => {
         });
         data = paged.content || [];
       }
-      setTasks(data);
+      setTasks((data || []).filter((t) => t.status === 'PENDING'));
     } catch (e: any) {
       toast.error('Failed to load tasks.');
     } finally {
@@ -99,12 +99,8 @@ export const TasksPage: React.FC = () => {
   };
 
   const handleCompleteTask = async (id: number) => {
-    // Optimistic UI update: remove from list if in Pending tab, or mark COMPLETED
-    setTasks((prev) =>
-      activeTab === 'pending'
-        ? prev.filter((t) => t.id !== id)
-        : prev.map((t) => (t.id === id ? { ...t, status: 'COMPLETED' } : t))
-    );
+    // Optimistic UI removal: completed task moves to History
+    setTasks((prev) => prev.filter((t) => t.id !== id));
     try {
       await tasksApi.completeTask(id);
       toast.success('Task marked as completed! 🎉');
