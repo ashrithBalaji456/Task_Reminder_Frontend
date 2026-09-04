@@ -61,9 +61,7 @@ export const HistoryPage: React.FC = () => {
     try {
       await tasksApi.deleteTask(id);
       toast.success('History task deleted 🗑️');
-      setHistoryData((prev) =>
-        prev ? { ...prev, tasks: prev.tasks.filter((t) => t.id !== id) } : null
-      );
+      await loadHistory();
     } catch (err: any) {
       toast.error('Failed to delete history task.');
     }

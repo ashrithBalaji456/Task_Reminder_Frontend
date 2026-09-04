@@ -91,9 +91,7 @@ export const CancelledTasksPage: React.FC = () => {
     try {
       await tasksApi.deleteTask(id);
       toast.success('Cancelled task permanently deleted 🗑️');
-      setHistoryData((prev) =>
-        prev ? { ...prev, tasks: prev.tasks.filter((t) => t.id !== id) } : null
-      );
+      await loadCancelledTasks();
     } catch (err: any) {
       toast.error('Failed to delete cancelled task.');
     }
