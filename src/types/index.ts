@@ -81,6 +81,7 @@ export interface UpdateTaskRequest {
   priority: Priority;
   dueDate?: string;
   dueTime: string;
+  recurring?: boolean;
   reminderOption?: ReminderOption;
   customReminderMinutes?: number;
   repeatFrequencyMinutes?: number;

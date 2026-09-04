@@ -253,18 +253,25 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             />
           </div>
 
-          <div className="flex items-center pt-6">
-            <label className="flex items-center gap-3 cursor-pointer p-3 rounded-2xl bg-purple-50/60 border border-purple-100 w-full hover:bg-purple-50 transition-colors">
-              <input
-                type="checkbox"
-                checked={recurring}
-                onChange={(e) => setRecurring(e.target.checked)}
-                className="w-4 h-4 text-purple-600 rounded-sm focus:ring-purple-500 cursor-pointer"
-              />
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
-                <Repeat className="w-4 h-4 text-purple-600" />
-                <span>Daily Recurring Task</span>
+          <div className="flex items-center pt-2">
+            <label className="flex flex-col gap-1 cursor-pointer p-3 rounded-2xl bg-purple-50/60 border border-purple-100 w-full hover:bg-purple-50 transition-colors">
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={recurring}
+                  onChange={(e) => setRecurring(e.target.checked)}
+                  className="w-4 h-4 text-purple-600 rounded-sm focus:ring-purple-500 cursor-pointer"
+                />
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
+                  <Repeat className="w-4 h-4 text-purple-600" />
+                  <span>Daily Recurring Task</span>
+                </div>
               </div>
+              <p className="text-[11px] text-slate-500 pl-7 font-medium">
+                {recurring
+                  ? '🔁 Repeats every morning. Uncheck this box to stop daily recurrence for future dates.'
+                  : '✨ Check this box to automatically repeat this task every day.'}
+              </p>
             </label>
           </div>
         </div>

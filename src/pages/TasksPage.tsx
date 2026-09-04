@@ -84,7 +84,9 @@ export const TasksPage: React.FC = () => {
           title: data.title,
           description: data.description,
           priority: data.priority,
+          dueDate: data.dueDate,
           dueTime: data.dueTime,
+          recurring: data.recurring,
           reminderOption: data.reminderOption,
           customReminderMinutes: data.customReminderMinutes,
         });

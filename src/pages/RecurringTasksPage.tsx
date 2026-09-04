@@ -10,7 +10,7 @@ import { recurringTasksApi } from '../api/recurring.api';
 import { RecurringTaskResponse, CreateTaskRequest } from '../types';
 import { useToast } from '../context/ToastContext';
 import { CreateTaskModal } from '../components/task/CreateTaskModal';
-import { Repeat, Lock, Unlock, Plus, Info, Clock, Calendar } from 'lucide-react';
+import { Repeat, Lock, Unlock, Plus, Info, Clock, Calendar, Trash2 } from 'lucide-react';
 
 export const RecurringTasksPage: React.FC = () => {
   const toast = useToast();
@@ -61,6 +61,16 @@ export const RecurringTasksPage: React.FC = () => {
     }
   };
 
+  const handleDeleteRecurringTask = async (id: number) => {
+    try {
+      await recurringTasksApi.deleteRecurringTask(id);
+      toast.success('Daily recurring stopped for this task. Future occurrences will no longer be generated.');
+      loadRecurringTasks();
+    } catch (e: any) {
+      toast.error('Failed to stop recurring task template.');
+    }
+  };
+
   return (
     <Layout>
       <Header
@@ -86,7 +96,7 @@ export const RecurringTasksPage: React.FC = () => {
             <h4 className="font-bold text-slate-800 text-sm">How Daily Recurring Tasks Work</h4>
             <p className="text-xs text-slate-600 leading-relaxed">
               Recurring task templates automatically materialize a new task occurrence for you every day.
-              If you lock a template, its daily occurrences are preserved, but template updates are restricted until unlocked.
+              You can click <strong>"Stop Daily Recurring"</strong> below at any time to disable future daily occurrences.
             </p>
           </div>
         </div>
@@ -142,16 +152,28 @@ export const RecurringTasksPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-rose-100/60 flex items-center justify-between">
-                <span className="text-xs text-slate-400">Recurrence: Daily</span>
-                <AnimatedButton
-                  size="sm"
-                  variant={task.locked ? 'secondary' : 'outline'}
-                  onClick={() => handleToggleLock(task.id, task.locked)}
-                  icon={task.locked ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
-                >
-                  {task.locked ? 'Unlock' : 'Lock'}
-                </AnimatedButton>
+              <div className="pt-4 border-t border-rose-100/60 flex flex-wrap items-center justify-between gap-2">
+                <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-xl border border-purple-200/60">
+                  Daily Recurrence Active
+                </span>
+                <div className="flex items-center gap-2">
+                  <AnimatedButton
+                    size="sm"
+                    variant={task.locked ? 'secondary' : 'outline'}
+                    onClick={() => handleToggleLock(task.id, task.locked)}
+                    icon={task.locked ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                  >
+                    {task.locked ? 'Unlock' : 'Lock'}
+                  </AnimatedButton>
+                  <AnimatedButton
+                    size="sm"
+                    variant="danger"
+                    onClick={() => handleDeleteRecurringTask(task.id)}
+                    icon={<Trash2 className="w-3.5 h-3.5" />}
+                  >
+                    Stop Recurring
+                  </AnimatedButton>
+                </div>
               </div>
             </GlassCard>
           ))}

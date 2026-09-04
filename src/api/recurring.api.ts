@@ -26,4 +26,8 @@ export const recurringTasksApi = {
     const res = await apiClient.patch<ApiResponse<RecurringTaskResponse>>(`/recurring-tasks/${id}/unlock`);
     return res.data.data;
   },
+
+  deleteRecurringTask: async (id: number): Promise<void> => {
+    await apiClient.delete<ApiResponse<void>>(`/recurring-tasks/${id}`);
+  },
 };
