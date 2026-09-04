@@ -113,6 +113,7 @@ export const TasksPage: React.FC = () => {
     try {
       await tasksApi.completeTask(id);
       toast.success('Task marked as completed! 🎉');
+      await loadTasks();
     } catch (e: any) {
       // Rollback on failure
       loadTasks();
@@ -126,6 +127,7 @@ export const TasksPage: React.FC = () => {
     try {
       await tasksApi.deleteTask(id);
       toast.success('Task deleted.');
+      await loadTasks();
     } catch (e: any) {
       loadTasks();
       toast.error('Failed to delete task.');
