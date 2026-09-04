@@ -82,6 +82,11 @@ export const GlassTimePicker: React.FC<GlassTimePickerProps> = ({
     setIsOpen(false);
   };
 
+  const handleAmPmChange = (ampm: 'AM' | 'PM') => {
+    setSelectedAmPm(ampm);
+    onChange(format24Hour(selectedHour12, selectedMinute, ampm));
+  };
+
   // Formatted display string for input button (e.g. "10:00 AM")
   const displayString = useMemo(() => {
     const hStr = String(selectedHour12).padStart(2, '0');
@@ -95,7 +100,7 @@ export const GlassTimePicker: React.FC<GlassTimePickerProps> = ({
 
   // Angles (deg from top 12 o'clock clockwise)
   const hourAngle = (selectedHour12 % 12) * 30; // 30 deg per hour
-  const minuteAngle = (selectedMinute / 60) * 360; // 6 deg per minute
+  const minuteAngle = (selectedMinute / 60) * 360; // 6 deg per minute (360 / 60 = 6)
 
   const currentAngle = mode === 'hour' ? hourAngle : minuteAngle;
 
@@ -108,7 +113,7 @@ export const GlassTimePicker: React.FC<GlassTimePickerProps> = ({
   // Minute Numbers (00 at top, 05, 10...)
   const minuteNumbers = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
 
-  // --- Smooth Touch & Mouse Drag Handlers ---
+  // --- Continuous Pointer Drag Handlers ---
   const updateAngleFromPointer = useCallback(
     (clientX: number, clientY: number) => {
       if (!dialRef.current) return;
@@ -119,7 +124,7 @@ export const GlassTimePicker: React.FC<GlassTimePickerProps> = ({
       const dx = clientX - cx;
       const dy = clientY - cy;
 
-      // Calculate angle clockwise starting from top (-90 deg)
+      // Calculate angle clockwise starting from top 12 o'clock (-90 deg in Cartesian)
       let angleDeg = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
       if (angleDeg < 0) angleDeg += 360;
 
@@ -128,13 +133,14 @@ export const GlassTimePicker: React.FC<GlassTimePickerProps> = ({
         if (h === 0) h = 12;
         if (h > 12) h = 12;
         setSelectedHour12(h);
+        onChange(format24Hour(h, selectedMinute, selectedAmPm));
       } else {
-        let m = Math.round(angleDeg / 6);
-        if (m >= 60) m = 0;
+        let m = Math.round(angleDeg / 6) % 60;
         setSelectedMinute(m);
+        onChange(format24Hour(selectedHour12, m, selectedAmPm));
       }
     },
-    [mode]
+    [mode, selectedHour12, selectedMinute, selectedAmPm, onChange]
   );
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -228,7 +234,7 @@ export const GlassTimePicker: React.FC<GlassTimePickerProps> = ({
               <div className="flex flex-col gap-1 bg-white/80 p-1 rounded-xl border border-rose-100 shadow-2xs">
                 <button
                   type="button"
-                  onClick={() => setSelectedAmPm('AM')}
+                  onClick={() => handleAmPmChange('AM')}
                   className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     selectedAmPm === 'AM'
                       ? 'bg-gradient-to-r from-rose-500 to-purple-600 text-white shadow-sm'
@@ -239,7 +245,7 @@ export const GlassTimePicker: React.FC<GlassTimePickerProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSelectedAmPm('PM')}
+                  onClick={() => handleAmPmChange('PM')}
                   className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     selectedAmPm === 'PM'
                       ? 'bg-gradient-to-r from-rose-500 to-purple-600 text-white shadow-sm'
@@ -283,6 +289,8 @@ export const GlassTimePicker: React.FC<GlassTimePickerProps> = ({
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}
+              onPointerCancel={handlePointerUp}
+              style={{ touchAction: 'none' }}
               className="relative w-[220px] h-[220px] mx-auto rounded-full bg-gradient-to-br from-rose-50/80 via-purple-50/60 to-amber-50/40 border border-rose-200/60 shadow-inner flex items-center justify-center mb-5 touch-none select-none cursor-grab active:cursor-grabbing"
             >
               <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
@@ -300,8 +308,20 @@ export const GlassTimePicker: React.FC<GlassTimePickerProps> = ({
                   strokeLinecap="round"
                 />
 
-                {/* Outer Selection Knob Circle (Exact 100% Centering over Number) */}
+                {/* Outer Selection Knob Circle */}
                 <circle cx={handX} cy={handY} r="18" fill="url(#handGrad)" />
+                <text
+                  x={handX}
+                  y={handY}
+                  fill="#ffffff"
+                  fontSize="11"
+                  fontWeight="bold"
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  className="pointer-events-none select-none"
+                >
+                  {mode === 'hour' ? selectedHour12 : String(selectedMinute).padStart(2, '0')}
+                </text>
                 <defs>
                   <linearGradient id="handGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#f43f5e" />
@@ -310,7 +330,7 @@ export const GlassTimePicker: React.FC<GlassTimePickerProps> = ({
                 </defs>
               </svg>
 
-              {/* Number Buttons around the 360deg dial */}
+              {/* Number Markers around the 360deg dial face (pointer-events-none) */}
               {mode === 'hour'
                 ? hourNumbers.map((num, idx) => {
                     const angleDeg = idx * 30 - 90;
@@ -320,23 +340,17 @@ export const GlassTimePicker: React.FC<GlassTimePickerProps> = ({
                     const isSelected = selectedHour12 === num;
 
                     return (
-                      <button
+                      <div
                         key={num}
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedHour12(num);
-                          setMode('minute');
-                        }}
                         style={{ left: `${x}px`, top: `${y}px` }}
-                        className={`absolute w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all z-20 cursor-pointer ${
+                        className={`absolute w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all z-20 pointer-events-none ${
                           isSelected
                             ? 'text-white scale-110'
-                            : 'text-slate-700 hover:bg-rose-100/70 hover:text-rose-700'
+                            : 'text-slate-700'
                         }`}
                       >
                         {num}
-                      </button>
+                      </div>
                     );
                   })
                 : minuteNumbers.map((num, idx) => {
@@ -347,22 +361,17 @@ export const GlassTimePicker: React.FC<GlassTimePickerProps> = ({
                     const isSelected = selectedMinute === num;
 
                     return (
-                      <button
+                      <div
                         key={num}
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedMinute(num);
-                        }}
                         style={{ left: `${x}px`, top: `${y}px` }}
-                        className={`absolute w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all z-20 cursor-pointer ${
+                        className={`absolute w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all z-20 pointer-events-none ${
                           isSelected
                             ? 'text-white scale-110'
-                            : 'text-slate-700 hover:bg-purple-100/70 hover:text-purple-700'
+                            : 'text-slate-700'
                         }`}
                       >
                         {String(num).padStart(2, '0')}
-                      </button>
+                      </div>
                     );
                   })}
             </div>
@@ -392,3 +401,4 @@ export const GlassTimePicker: React.FC<GlassTimePickerProps> = ({
     </div>
   );
 };
+
