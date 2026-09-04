@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Layout } from '../components/layout/Layout';
 import { Header } from '../components/layout/Header';
 import { GlassCard } from '../components/common/GlassCard';
@@ -9,6 +10,7 @@ import { StatusBadge } from '../components/common/StatusBadge';
 import { GlassDatePicker } from '../components/common/GlassDatePicker';
 import { GlassSelect } from '../components/common/GlassSelect';
 import { historyApi } from '../api/history.api';
+import { tasksApi } from '../api/tasks.api';
 import { DailyHistoryResponse, TaskResponse, Priority, TaskStatus } from '../types';
 import { useToast } from '../context/ToastContext';
 import {
@@ -21,10 +23,12 @@ import {
   Filter,
   ArrowUpDown,
   RotateCcw,
-  Sparkles,
+  Trash2,
+  ArrowRight,
 } from 'lucide-react';
 
 export const HistoryPage: React.FC = () => {
+  const navigate = useNavigate();
   const toast = useToast();
 
   const [selectedDate, setSelectedDate] = useState<string>(''); // Default empty = All History
@@ -53,11 +57,23 @@ export const HistoryPage: React.FC = () => {
     loadHistory();
   }, [loadHistory]);
 
-  // Filter and Sort Logic
+  const handleDeleteTask = async (id: number) => {
+    try {
+      await tasksApi.deleteTask(id);
+      toast.success('History task deleted 🗑️');
+      setHistoryData((prev) =>
+        prev ? { ...prev, tasks: prev.tasks.filter((t) => t.id !== id) } : null
+      );
+    } catch (err: any) {
+      toast.error('Failed to delete history task.');
+    }
+  };
+
+  // Filter and Sort Logic (Hides CANCELLED tasks from main history view)
   const filteredAndSortedTasks = useMemo(() => {
     if (!historyData?.tasks) return [];
 
-    let result = [...historyData.tasks];
+    let result = historyData.tasks.filter((t) => t.status !== 'CANCELLED');
 
     // Search Query Filter
     if (searchQuery.trim()) {
@@ -109,7 +125,7 @@ export const HistoryPage: React.FC = () => {
         subtitle={
           selectedDate
             ? `Viewing historical occurrences for ${selectedDate}`
-            : 'Viewing all-time task occurrences and performance history'
+            : 'Viewing completed, pending, and active historical task occurrences'
         }
       />
 
@@ -178,7 +194,7 @@ export const HistoryPage: React.FC = () => {
                 </div>
               </div>
               <p className="text-3xl font-black text-slate-800">{historyData?.totalTasks || 0}</p>
-              <p className="text-xs text-slate-500 mt-1">Total recorded items</p>
+              <p className="text-xs text-slate-500 mt-1">Total active recorded items</p>
             </GlassCard>
 
             {/* Completed Tasks */}
@@ -207,16 +223,22 @@ export const HistoryPage: React.FC = () => {
               <p className="text-xs text-amber-600 font-medium mt-1">Awaiting completion</p>
             </GlassCard>
 
-            {/* Cancelled Tasks */}
-            <GlassCard>
+            {/* Cancelled Tasks (Link to /cancelled) */}
+            <GlassCard
+              onClick={() => navigate('/cancelled')}
+              className="cursor-pointer hover:border-rose-300 transition-all group"
+            >
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Cancelled</span>
-                <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Cancelled Tasks</span>
+                <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center group-hover:scale-110 transition-transform">
                   <XCircle className="w-5 h-5" />
                 </div>
               </div>
               <p className="text-3xl font-black text-slate-800">{historyData?.cancelledTasks || 0}</p>
-              <p className="text-xs text-rose-500 font-medium mt-1">Cancelled tasks</p>
+              <p className="text-xs text-rose-600 font-semibold mt-1 flex items-center gap-1">
+                <span>View Cancelled Page</span>
+                <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+              </p>
             </GlassCard>
           </>
         )}
@@ -244,7 +266,6 @@ export const HistoryPage: React.FC = () => {
               { value: 'COMPLETED', label: '✅ Completed Only' },
               { value: 'PENDING', label: '⏰ Pending Only' },
               { value: 'MOVED', label: '➡️ Moved Only' },
-              { value: 'CANCELLED', label: '❌ Cancelled Only' },
             ]}
             value={statusFilter}
             onChange={setStatusFilter}
@@ -282,7 +303,7 @@ export const HistoryPage: React.FC = () => {
       {/* Results Header Counter */}
       <div className="flex items-center justify-between px-2 mb-4">
         <span className="text-xs font-bold text-slate-600">
-          Showing {filteredAndSortedTasks.length} of {historyData?.tasks?.length || 0} historical items
+          Showing {filteredAndSortedTasks.length} history items
         </span>
         {(searchQuery || statusFilter !== 'ALL' || priorityFilter !== 'ALL') && (
           <button
@@ -315,7 +336,7 @@ export const HistoryPage: React.FC = () => {
           </GlassCard>
         ) : (
           filteredAndSortedTasks.map((task) => (
-            <GlassCard key={task.id} className="p-5">
+            <GlassCard key={task.id} className="p-5 hover:border-purple-200 transition-all">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="space-y-2 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -333,16 +354,27 @@ export const HistoryPage: React.FC = () => {
                   )}
                 </div>
 
-                <div className="flex flex-col items-end gap-1.5 shrink-0 text-right">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-slate-100/70 px-3 py-1.5 rounded-xl border border-slate-200/80">
-                    <Calendar className="w-3.5 h-3.5 text-rose-500" />
-                    <span>{task.dueDate} at {task.dueTime}</span>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 shrink-0">
+                  <div className="flex flex-col items-end gap-1.5 text-right">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-slate-100/70 px-3 py-1.5 rounded-xl border border-slate-200/80">
+                      <Calendar className="w-3.5 h-3.5 text-rose-500" />
+                      <span>{task.dueDate} at {task.dueTime}</span>
+                    </div>
+                    {task.completedAt && (
+                      <span className="text-[11px] font-medium text-emerald-600">
+                        Completed: {new Date(task.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    )}
                   </div>
-                  {task.completedAt && (
-                    <span className="text-[11px] font-medium text-emerald-600">
-                      Completed: {new Date(task.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  )}
+
+                  <button
+                    onClick={() => handleDeleteTask(task.id)}
+                    title="Delete history item"
+                    className="p-2 rounded-xl text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200/80 transition-colors cursor-pointer flex items-center gap-1 text-xs font-bold"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Delete</span>
+                  </button>
                 </div>
               </div>
             </GlassCard>
@@ -352,3 +384,4 @@ export const HistoryPage: React.FC = () => {
     </Layout>
   );
 };
+

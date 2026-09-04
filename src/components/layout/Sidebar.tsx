@@ -5,6 +5,7 @@ import {
   CheckSquare,
   Repeat,
   History,
+  XCircle,
   BarChart3,
   Bell,
   Settings,
@@ -23,6 +24,7 @@ const navItems = [
   { path: '/alerts', label: 'Alerts', icon: Bell },
   { path: '/recurring', label: 'Recurring', icon: Repeat },
   { path: '/history', label: 'History', icon: History },
+  { path: '/cancelled', label: 'Cancelled', icon: XCircle },
   { path: '/analytics', label: 'Analytics', icon: BarChart3 },
   { path: '/preferences', label: 'Preferences', icon: Settings },
 ];

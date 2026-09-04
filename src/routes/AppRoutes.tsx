@@ -10,6 +10,7 @@ import { DashboardPage } from '../pages/DashboardPage';
 import { TasksPage } from '../pages/TasksPage';
 import { RecurringTasksPage } from '../pages/RecurringTasksPage';
 import { HistoryPage } from '../pages/HistoryPage';
+import { CancelledTasksPage } from '../pages/CancelledTasksPage';
 import { AnalyticsPage } from '../pages/AnalyticsPage';
 import { AlertsPage } from '../pages/AlertsPage';
 import { PreferencesPage } from '../pages/PreferencesPage';
@@ -31,6 +32,7 @@ export const AppRoutes: React.FC = () => {
         <Route path="/alerts" element={<AlertsPage />} />
         <Route path="/recurring" element={<RecurringTasksPage />} />
         <Route path="/history" element={<HistoryPage />} />
+        <Route path="/cancelled" element={<CancelledTasksPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/preferences" element={<PreferencesPage />} />
       </Route>
