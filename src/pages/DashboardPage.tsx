@@ -209,7 +209,13 @@ export const DashboardPage: React.FC = () => {
           <>
             {/* Total Tasks Card */}
             <GlassCard
-              onClick={() => navigate('/tasks')}
+              onClick={() => {
+                if ((dashboardData?.pendingTasks || 0) === 0 && (dashboardData?.completedTasks || 0) > 0) {
+                  navigate('/history');
+                } else {
+                  navigate('/tasks');
+                }
+              }}
               className="cursor-pointer hover:border-purple-300 transition-all group"
             >
               <div className="flex items-center justify-between mb-3">
@@ -220,14 +226,14 @@ export const DashboardPage: React.FC = () => {
               </div>
               <p className="text-3xl font-black text-slate-800">{dashboardData?.totalTasks || 0}</p>
               <p className="text-xs text-purple-600 font-semibold mt-1 flex items-center gap-1">
-                <span>Scheduled for today</span>
+                <span>{(dashboardData?.pendingTasks || 0) === 0 && (dashboardData?.completedTasks || 0) > 0 ? 'View in History' : 'Scheduled for today'}</span>
                 <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
               </p>
             </GlassCard>
 
             {/* Completed Tasks Card */}
             <GlassCard
-              onClick={() => navigate('/tasks')}
+              onClick={() => navigate('/history')}
               className="cursor-pointer hover:border-emerald-300 transition-all group"
             >
               <div className="flex items-center justify-between mb-3">
@@ -238,7 +244,7 @@ export const DashboardPage: React.FC = () => {
               </div>
               <p className="text-3xl font-black text-slate-800">{dashboardData?.completedTasks || 0}</p>
               <p className="text-xs text-emerald-600 font-semibold mt-1 flex items-center gap-1">
-                <span>{dashboardData?.completionPercentage || 0}% finished</span>
+                <span>{dashboardData?.completionPercentage || 0}% finished (View History)</span>
                 <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
               </p>
             </GlassCard>

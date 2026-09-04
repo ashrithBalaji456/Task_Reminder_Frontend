@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Layout } from '../components/layout/Layout';
 import { Header } from '../components/layout/Header';
@@ -18,6 +19,7 @@ import { Plus, Search, Calendar, CheckSquare, Sparkles, Filter } from 'lucide-re
 type TaskViewTab = 'today' | 'tomorrow' | 'date' | 'pending';
 
 export const TasksPage: React.FC = () => {
+  const navigate = useNavigate();
   const toast = useToast();
 
   const [activeTab, setActiveTab] = useState<TaskViewTab>('today');
@@ -208,6 +210,13 @@ export const TasksPage: React.FC = () => {
             >
               All Pending
             </button>
+            <button
+              onClick={() => navigate('/history')}
+              className="px-3.5 py-2 rounded-2xl text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 transition-all cursor-pointer flex items-center gap-1.5"
+            >
+              <CheckSquare className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Task History 📜</span>
+            </button>
           </div>
 
           {activeTab === 'date' && (
@@ -264,13 +273,10 @@ export const TasksPage: React.FC = () => {
           description={
             searchQuery
               ? 'Try adjusting your search query or priority filters.'
-              : 'No tasks recorded for this view. Create a new task to stay organized.'
+              : 'No pending tasks for this view. You can view all completed tasks in Task History.'
           }
-          actionLabel="Create New Task"
-          onAction={() => {
-            setEditingTask(null);
-            setIsCreateModalOpen(true);
-          }}
+          actionLabel="View Task History 📜"
+          onAction={() => navigate('/history')}
         />
       ) : (
         <motion.div layout className="space-y-4">
