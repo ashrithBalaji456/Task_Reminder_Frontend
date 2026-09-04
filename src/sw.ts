@@ -51,8 +51,6 @@ self.addEventListener('push', (event: PushEvent) => {
     badge: '/pwa-192x192.png',
     vibrate: [500, 150, 500, 150, 500, 150, 800],
     silent: false,
-    priority: 'high',
-    urgency: 'high',
     timestamp: Date.now(),
     tag: notificationTag,
     renotify: true,
