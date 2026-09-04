@@ -28,6 +28,7 @@ export const TasksPage: React.FC = () => {
   const [priorityFilter, setPriorityFilter] = useState<Priority | 'ALL'>('ALL');
 
   const [tasks, setTasks] = useState<TaskResponse[]>([]);
+  const [allPendingCount, setAllPendingCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Modals
@@ -38,6 +39,10 @@ export const TasksPage: React.FC = () => {
   const loadTasks = useCallback(async () => {
     setIsLoading(true);
     try {
+      tasksApi.getPendingTasks({ page: 0, size: 1 }).then((paged) => {
+        setAllPendingCount(paged.totalElements ?? null);
+      }).catch(() => {});
+
       let data: TaskResponse[] = [];
       if (activeTab === 'today') {
         data = await tasksApi.getTodayTasks();
@@ -204,13 +209,24 @@ export const TasksPage: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab('pending')}
-              className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+              className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                 activeTab === 'pending'
                   ? 'bg-gradient-to-r from-rose-500 to-purple-600 text-white shadow-md'
                   : 'text-slate-600 hover:bg-rose-50'
               }`}
             >
-              All Pending
+              <span>All Pending</span>
+              {allPendingCount !== null && (
+                <span
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                    activeTab === 'pending'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-amber-100 text-amber-800'
+                  }`}
+                >
+                  {allPendingCount}
+                </span>
+              )}
             </button>
             <button
               onClick={() => navigate('/history')}

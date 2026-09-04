@@ -133,6 +133,11 @@ export interface DashboardResponse {
   mediumPriorityPendingCount: number;
   lowPriorityPendingCount: number;
   completionPercentage: number;
+  allTimeTotalTasks?: number;
+  allTimeCompletedTasks?: number;
+  allTimePendingTasks?: number;
+  allTimeCancelledTasks?: number;
+  allTimeCompletionPercentage?: number;
 }
 
 export interface AlertResponse {
